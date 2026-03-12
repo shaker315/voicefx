@@ -1,0 +1,37 @@
+{
+    "fx": {
+        "distortion_on": true,
+        "saturation_on": true,
+        "bass_on": true,
+        "noise_gate_on": true,
+        "fx_master_on": true,
+        "distortion": 5.171799027552674,
+        "saturation": 4.982171799027553,
+        "bass_gain": 3.727714748784441,
+        "noise_gate_threshold": 0.02
+    },
+    "audio": {
+        "mic_enabled": true,
+        "monitor_on": false,
+        "volume": 3.9802269043760132,
+        "volume_fx_on": 3.9802269043760132,
+        "volume_fx_off": 1.0,
+        "monitor_volume": 1.0
+    },
+    "hotkeys": {
+        "true_mic_mute": "f10",
+        "mic_mute": "f8",
+        "monitor_mute": "f9"
+    },
+    "gui": {
+        "window_width": 350,
+        "window_height": 817,
+        "window_x": -464,
+        "window_y": 153,
+        "show_meter": true
+    },
+    "devices": {
+        "default_input_device": 1,
+        "default_output_device": 5
+    }
+}
