@@ -122,6 +122,13 @@ def load_settings():
             data.update(_flatten_settings(loaded))
         except:
             pass
+        return data
+
+    try:
+        with open(SETTINGS_FILE, "w") as f:
+            json.dump(_nest_settings(data), f, indent=4)
+    except:
+        pass
     return data
 
 def save_settings(settings):
