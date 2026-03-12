@@ -1,7 +1,8 @@
 import json
 import os
 
-SETTINGS_FILE = "settings.json"
+_APP_DIR = os.path.join(os.path.expanduser("~"), "AppData", "Roaming", "VoiceFX")
+SETTINGS_FILE = os.path.join(_APP_DIR, "settings.json")
 
 KEY_PATHS = {
     "distortion_on": ("fx", "distortion_on"),
@@ -127,6 +128,7 @@ def load_settings():
         return data
 
     try:
+        os.makedirs(_APP_DIR, exist_ok=True)
         with open(SETTINGS_FILE, "w") as f:
             json.dump(_nest_settings(data), f, indent=4)
     except:
@@ -137,5 +139,6 @@ def save_settings(settings):
     flat = _flatten_settings(settings)
     nested = _nest_settings(flat)
 
+    os.makedirs(_APP_DIR, exist_ok=True)
     with open(SETTINGS_FILE, "w") as f:
         json.dump(nested, f, indent=4)
