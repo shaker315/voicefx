@@ -2,6 +2,9 @@ import sounddevice as sd
 import tkinter as tk
 from tkinter import messagebox
 import threading
+import os
+import sys
+import subprocess
 from core.updater import check_for_update, start_update
 from core.settings import load_settings, save_settings
 from core.version import APP_VERSION
@@ -18,6 +21,7 @@ class VoiceFXApp:
         if self.settings.get("app_version") != APP_VERSION:
             self.settings["app_version"] = APP_VERSION
             save_settings(self.settings)
+        self._ensure_desktop_shortcut()
         self.state = AppState(self.settings)
         self.gui = None
         if not self._detect_vb_cable():
@@ -55,6 +59,43 @@ class VoiceFXApp:
         )
         root.destroy()
 
+    def _ensure_desktop_shortcut(self):
+        try:
+            if self.settings.get("shortcut_created"):
+                return
+
+            exe_path = sys.executable
+            if not exe_path.lower().endswith(".exe"):
+                return
+
+            icon_path = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "assets", "icon.ico")
+            )
+            if not os.path.exists(icon_path):
+                return
+
+            desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+            shortcut_path = os.path.join(desktop, "VOICE FX PRO.lnk")
+
+            ps = (
+                "$W = New-Object -ComObject WScript.Shell; "
+                f"$S = $W.CreateShortcut('{shortcut_path}'); "
+                f"$S.TargetPath = '{exe_path}'; "
+                f"$S.IconLocation = '{icon_path}'; "
+                "$S.Save()"
+            )
+            subprocess.run(
+                ["powershell", "-NoProfile", "-Command", ps],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.settings["shortcut_created"] = True
+            save_settings(self.settings)
+        except Exception:
+            pass
+
     def check_updates_async(self):
         if self._update_thread and self._update_thread.is_alive():
             return
@@ -74,11 +115,14 @@ class VoiceFXApp:
             if not res:
                 return
             self.stream_manager.stop()
-            ok, err = start_update(info["url"])
+            ok, err, launched_installer = start_update(info["url"])
             if not ok:
                 messagebox.showerror("Aktualizacja", f"Nie udalo sie pobrac aktualizacji.\n{err}")
             else:
-                self.gui.root.destroy()
+                if launched_installer:
+                    self.gui.root.destroy()
+                else:
+                    self.gui.root.destroy()
 
         try:
             self.gui.root.after(0, prompt)

@@ -27,6 +27,7 @@ KEY_PATHS = {
     "window_x": ("gui", "window_x"),
     "window_y": ("gui", "window_y"),
     "show_meter": ("gui", "show_meter"),
+    "shortcut_created": ("gui", "shortcut_created"),
     "default_input_device": ("devices", "default_input_device"),
     "default_output_device": ("devices", "default_output_device"),
 }
@@ -55,6 +56,7 @@ default_settings = {
     "window_x": None,
     "window_y": None,
     "show_meter": True,
+    "shortcut_created": False,
     "default_input_device": None,
     "default_output_device": None,
 }

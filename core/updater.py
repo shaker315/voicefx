@@ -52,15 +52,31 @@ def _download(url, dest_path):
         return False, str(e)
 
 
+def _is_installer(url):
+    name = os.path.basename(url).lower()
+    return name.endswith(".exe") and ("setup" in name or "installer" in name)
+
+
 def start_update(url):
     exe_path = sys.executable
     if not os.path.isfile(exe_path) or not exe_path.lower().endswith(".exe"):
-        return False, "Uruchomione nie jako EXE"
+        return False, "Uruchomione nie jako EXE", False
+
+    if _is_installer(url):
+        temp_installer = os.path.join(tempfile.gettempdir(), "VoiceFX-Setup.exe")
+        ok, err = _download(url, temp_installer)
+        if not ok:
+            return False, err, False
+        try:
+            subprocess.Popen([temp_installer], close_fds=True)
+        except Exception as e:
+            return False, str(e), False
+        return True, "", True
 
     new_path = exe_path + ".new"
     ok, err = _download(url, new_path)
     if not ok:
-        return False, err
+        return False, err, False
 
     bat_path = os.path.join(tempfile.gettempdir(), "voicefx_update.bat")
     with open(bat_path, "w", encoding="utf-8") as f:
@@ -80,6 +96,6 @@ def start_update(url):
     try:
         subprocess.Popen(["cmd", "/c", bat_path], close_fds=True)
     except Exception as e:
-        return False, str(e)
+        return False, str(e), False
 
-    return True, ""
+    return True, "", False
