@@ -29,6 +29,7 @@ KEY_PATHS = {
     "window_y": ("gui", "window_y"),
     "show_meter": ("gui", "show_meter"),
     "shortcut_created": ("gui", "shortcut_created"),
+    "theme": ("gui", "theme"),
     "default_input_device": ("devices", "default_input_device"),
     "default_output_device": ("devices", "default_output_device"),
 }
@@ -58,6 +59,7 @@ default_settings = {
     "window_y": None,
     "show_meter": True,
     "shortcut_created": False,
+    "theme": "dark",
     "default_input_device": None,
     "default_output_device": None,
 }

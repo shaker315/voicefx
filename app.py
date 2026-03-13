@@ -17,6 +17,7 @@ from gui.main_window import MainWindow
 class VoiceFXApp:
 
     def __init__(self):
+        self._show_splash()
         self.settings = load_settings()
         if self.settings.get("app_version") != APP_VERSION:
             self.settings["app_version"] = APP_VERSION
@@ -96,7 +97,51 @@ class VoiceFXApp:
         except Exception:
             pass
 
+    def _show_splash(self):
+        if not getattr(sys, "frozen", False):
+            return
+        try:
+            splash = tk.Tk()
+            splash.overrideredirect(True)
+            splash.configure(bg="#0f0f14")
+
+            icon_path = os.path.join(os.path.dirname(__file__), "assets", "icon.png")
+            img = None
+            if os.path.exists(icon_path):
+                img = tk.PhotoImage(file=icon_path)
+
+            if img:
+                label = tk.Label(splash, image=img, bg="#0f0f14")
+                label.image = img
+                label.pack(padx=24, pady=24)
+            else:
+                label = tk.Label(splash, text="VOICE FX PRO", fg="white", bg="#0f0f14")
+                label.pack(padx=24, pady=24)
+
+            splash.update_idletasks()
+            w = splash.winfo_width()
+            h = splash.winfo_height()
+            x = (splash.winfo_screenwidth() - w) // 2
+            y = (splash.winfo_screenheight() - h) // 2
+            splash.geometry(f"{w}x{h}+{x}+{y}")
+            splash.attributes("-alpha", 0.0)
+
+            def fade(step=0):
+                alpha = min(1.0, step / 10.0)
+                splash.attributes("-alpha", alpha)
+                if step < 10:
+                    splash.after(30, fade, step + 1)
+                else:
+                    splash.after(350, splash.destroy)
+
+            fade()
+            splash.mainloop()
+        except Exception:
+            pass
+
     def check_updates_async(self):
+        if not getattr(sys, "frozen", False):
+            return
         if self._update_thread and self._update_thread.is_alive():
             return
         self._update_thread = threading.Thread(target=self._check_updates_worker, daemon=True)
@@ -115,14 +160,81 @@ class VoiceFXApp:
             if not res:
                 return
             self.stream_manager.stop()
-            ok, err, launched_installer = start_update(info["url"])
-            if not ok:
-                messagebox.showerror("Aktualizacja", f"Nie udalo sie pobrac aktualizacji.\n{err}")
-            else:
-                if launched_installer:
+            cancel_event = threading.Event()
+            try:
+                self.gui.show_loading_screen(
+                    title_text="Pobieranie aktualizacji",
+                    status_text="Przygotowanie...",
+                    show_cancel=True,
+                )
+                self.gui.set_loading_progress(0, smooth=False)
+                self.gui.set_loading_cancel_enabled(True)
+                def on_cancel():
+                    cancel_event.set()
+                    try:
+                        self.gui.set_loading_status("Anulowanie...")
+                        self.gui.set_loading_cancel_enabled(False)
+                    except Exception:
+                        pass
+                self.gui.set_loading_cancel_callback(on_cancel)
+                self.gui.root.update_idletasks()
+            except Exception:
+                pass
+
+            def progress_cb(percent, downloaded, total):
+                def ui():
+                    if total > 0:
+                        mb = downloaded / (1024 * 1024)
+                        mb_total = total / (1024 * 1024)
+                        status = f"Pobieranie... {mb:.1f}/{mb_total:.1f} MB"
+                        self.gui.set_loading_indeterminate(False)
+                    else:
+                        status = "Pobieranie..."
+                        self.gui.set_loading_indeterminate(True, status_text=status)
+                        return
+                    self.gui.set_loading_progress(percent, status_text=status, smooth=True)
+                try:
+                    self.gui.root.after(0, ui)
+                except Exception:
+                    pass
+
+            def status_cb(text):
+                try:
+                    self.gui.root.after(0, lambda: self.gui.set_loading_status(text))
+                except Exception:
+                    pass
+
+            def update_worker():
+                ok, err, launched_installer = start_update(
+                    info["url"],
+                    progress_cb=progress_cb,
+                    status_cb=status_cb,
+                    cancel_event=cancel_event,
+                )
+
+                def done():
+                    if not ok:
+                        try:
+                            self.gui.set_loading_cancel_enabled(False)
+                            self.gui.hide_loading_screen()
+                        except Exception:
+                            pass
+                        if err == "Anulowano":
+                            messagebox.showinfo("Aktualizacja", "Pobieranie anulowane.")
+                            return
+                        messagebox.showerror(
+                            "Aktualizacja",
+                            f"Nie udalo sie pobrac aktualizacji.\n{err}",
+                        )
+                        return
                     self.gui.root.destroy()
-                else:
-                    self.gui.root.destroy()
+
+                try:
+                    self.gui.root.after(0, done)
+                except Exception:
+                    pass
+
+            threading.Thread(target=update_worker, daemon=True).start()
 
         try:
             self.gui.root.after(0, prompt)

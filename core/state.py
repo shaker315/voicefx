@@ -46,6 +46,7 @@ class AppState:
         self.window_x = settings.get("window_x")
         self.window_y = settings.get("window_y")
         self.show_meter = settings.get("show_meter", True)
+        self.theme = settings.get("theme", "dark")
 
         self.fx_locked = False
         self.monitor_locked = False

@@ -5,6 +5,7 @@ import customtkinter as ctk
 import sounddevice as sd
 
 from gui.components.scrollbar_style import UltraThinScrollbar
+from gui.theme import get_theme
 
 
 class SettingsWindow(tk.Toplevel):
@@ -16,13 +17,14 @@ class SettingsWindow(tk.Toplevel):
         self.app_state = app.state
         self.settings = app.settings
 
-        self.bg_root = "#0e1016"
-        self.bg_canvas = "#10131c"
-        self.bg_card = "#171c28"
-        self.bg_input = "#252c3d"
-        self.fg_primary = "#f4f7ff"
-        self.fg_muted = "#aeb7c9"
-        self.accent = "#1fe38a"
+        self.theme = get_theme(self.settings.get("theme", "dark"))
+        self.bg_root = self.theme["bg_root"]
+        self.bg_canvas = self.theme["bg_canvas"]
+        self.bg_card = self.theme["bg_card"]
+        self.bg_input = self.theme["bg_input"]
+        self.fg_primary = self.theme["fg_primary"]
+        self.fg_muted = self.theme["fg_muted"]
+        self.accent = self.theme["accent"]
 
         self.title("Ustawienia")
         self.geometry("440x560")
@@ -61,7 +63,7 @@ class SettingsWindow(tk.Toplevel):
             self.container,
             target_canvas=self.canvas,
             width=4,
-            thumb_color="#3f4a67",
+            thumb_color=self.theme["scrollbar_thumb"],
             auto_hide_delay=1400,
         )
 
@@ -101,8 +103,8 @@ class SettingsWindow(tk.Toplevel):
 
         self.option_add("*TCombobox*Listbox.background", self.bg_input)
         self.option_add("*TCombobox*Listbox.foreground", self.fg_primary)
-        self.option_add("*TCombobox*Listbox.selectBackground", "#34405a")
-        self.option_add("*TCombobox*Listbox.selectForeground", self.fg_primary)
+        self.option_add("*TCombobox*Listbox.selectBackground", self.theme["combo_select_bg"])
+        self.option_add("*TCombobox*Listbox.selectForeground", self.theme["combo_select_fg"])
         self.option_add("*TCombobox*Listbox.font", ("Segoe UI", 10))
 
         style.configure(
@@ -236,14 +238,29 @@ class SettingsWindow(tk.Toplevel):
             variable=self.meter_var,
             command=self.on_meter_toggle,
             fg_color=self.accent,
-            hover_color="#1ac979",
+            hover_color=self.theme["accent_hover"],
             text_color=self.fg_primary,
             checkbox_height=18,
             checkbox_width=18,
             border_width=1,
-            border_color="#38425a",
+            border_color=self.theme["checkbox_border"],
         )
         self.meter_checkbox.pack(anchor="w", padx=14, pady=(4, 14))
+
+        self._row_label(view_card, "Wyglad")
+        self.theme_var = tk.StringVar(
+            value="Jasny" if self.settings.get("theme") == "light" else "Ciemny"
+        )
+        self.theme_combo = ttk.Combobox(
+            view_card,
+            values=["Ciemny", "Jasny"],
+            textvariable=self.theme_var,
+            state="readonly",
+            style="Modern.TCombobox",
+            cursor="hand2",
+        )
+        self.theme_combo.pack(fill="x", padx=14, pady=(0, 14))
+        self._bind_combobox_wheel_to_scroll(self.theme_combo)
 
         actions = tk.Frame(self.main_frame, bg=self.bg_canvas)
         actions.pack(fill="x", padx=16, pady=(0, 16))
@@ -254,10 +271,10 @@ class SettingsWindow(tk.Toplevel):
             actions,
             text="Anuluj",
             command=self.on_close,
-            bg="#242a39",
-            fg=self.fg_primary,
-            activebackground="#2e364a",
-            activeforeground=self.fg_primary,
+            bg=self.theme["button_bg"],
+            fg=self.theme["button_text"],
+            activebackground=self.theme["button_bg_hover"],
+            activeforeground=self.theme["button_text"],
             relief="flat",
             cursor="hand2",
             font=("Segoe UI", 10, "bold"),
@@ -270,9 +287,9 @@ class SettingsWindow(tk.Toplevel):
             text="Zapisz",
             command=self.save_and_close,
             bg=self.accent,
-            fg="#04120a",
-            activebackground="#2af099",
-            activeforeground="#04120a",
+            fg=self.theme["button_text_dark"],
+            activebackground=self.theme["accent_hover"],
+            activeforeground=self.theme["button_text_dark"],
             relief="flat",
             cursor="hand2",
             font=("Segoe UI", 10, "bold"),
@@ -412,9 +429,13 @@ class SettingsWindow(tk.Toplevel):
         self.settings["hotkey_monitor_mute"] = self.monitor_hotkey_var.get()
         self.settings["hotkey_true_mic_mute"] = self.true_mic_mute_var.get()
         self.settings["show_meter"] = self.meter_var.get()
+        selected_theme = "light" if self.theme_var.get() == "Jasny" else "dark"
+        self.settings["theme"] = selected_theme
 
         self.app_state.show_meter = self.meter_var.get()
+        self.app_state.theme = selected_theme
         self.app.gui.update_meter_visibility()
+        self.app.gui.apply_theme(selected_theme)
 
         from core.settings import save_settings
 

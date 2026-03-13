@@ -15,8 +15,11 @@ class ModernSlider(tk.Frame):
         toggle_attr=None,
         save_callback=None,
         default_value=1,
+        theme=None,
     ):
-        super().__init__(parent, bg="#181824")
+        self.theme = theme or {}
+        self._apply_theme_defaults()
+        super().__init__(parent, bg=self._c("slider_bg"))
 
         self.state = state
         self.attr = attr
@@ -36,28 +39,28 @@ class ModernSlider(tk.Frame):
         self._reset_flash_after_id = None
         self._reset_in_progress = False
         self._reset_angle = 0
-        self._reset_color = "#aaaaaa"
+        self._reset_color = self._c("slider_reset")
 
         self.columnconfigure(0, weight=1)
 
-        top_row = tk.Frame(self, bg="#181824")
-        top_row.grid(row=0, column=0, sticky="ew", padx=10, pady=(6, 0))
-        top_row.columnconfigure(0, weight=1)
+        self.top_row = tk.Frame(self, bg=self._c("slider_bg"))
+        self.top_row.grid(row=0, column=0, sticky="ew", padx=10, pady=(6, 0))
+        self.top_row.columnconfigure(0, weight=1)
 
         self.label = tk.Label(
-            top_row,
+            self.top_row,
             text=label,
-            bg="#181824",
-            fg="white",
+            bg=self._c("slider_bg"),
+            fg=self._c("slider_text"),
             font=("Segoe UI", 10, "bold"),
         )
         self.label.grid(row=0, column=0, sticky="w")
 
         self.reset_btn = tk.Canvas(
-            top_row,
+            self.top_row,
             width=16,
             height=16,
-            bg="#181824",
+            bg=self._c("slider_bg"),
             highlightthickness=0,
             cursor="hand2",
         )
@@ -68,10 +71,10 @@ class ModernSlider(tk.Frame):
 
         if self.toggle_attr:
             self.toggle_indicator = tk.Canvas(
-                top_row,
+                self.top_row,
                 width=12,
                 height=12,
-                bg="#181824",
+                bg=self._c("slider_bg"),
                 highlightthickness=0,
                 cursor="hand2",
             )
@@ -81,7 +84,7 @@ class ModernSlider(tk.Frame):
         self.canvas = tk.Canvas(
             self,
             height=28,
-            bg="#181824",
+            bg=self._c("slider_bg"),
             highlightthickness=0,
         )
         self.canvas.grid(row=1, column=0, sticky="ew", padx=10, pady=4)
@@ -93,8 +96,8 @@ class ModernSlider(tk.Frame):
         self.value_label = tk.Label(
             self,
             text="0.00",
-            bg="#181824",
-            fg="#aaaaaa",
+            bg=self._c("slider_bg"),
+            fg=self._c("slider_text_muted"),
             font=("Segoe UI", 9),
         )
         self.value_label.grid(row=2, column=0, pady=(0, 6))
@@ -183,7 +186,7 @@ class ModernSlider(tk.Frame):
             y,
             width - 10,
             y,
-            fill="#2a2a38",
+            fill=self._c("slider_track"),
             width=track_height,
             capstyle="round",
         )
@@ -195,29 +198,29 @@ class ModernSlider(tk.Frame):
         fill_x = 10 + percent * (width - 20)
 
         if self.attr == "monitor_volume":
-            color = "#00ff88" if self.state.monitor_on else "#444444"
+            color = self._c("accent") if self.state.monitor_on else self._c("slider_inactive")
         elif self.attr == "volume":
-            color = "#444444" if self.state.true_mute_active else "#00ff88"
+            color = self._c("slider_inactive") if self.state.true_mute_active else self._c("accent")
         else:
             if not self.state.fx_master_on:
-                color = "#444444"
+                color = self._c("slider_inactive")
             elif self.toggle_attr and not getattr(self.state, self.toggle_attr, True):
-                color = "#444444"
+                color = self._c("slider_inactive")
             else:
-                color = "#00ff88"
+                color = self._c("accent")
 
         if self.attr == "monitor_volume" and not self.state.monitor_on:
-            self.value_label.config(fg="#666666")
-            self.label.config(fg="#666666")
+            self.value_label.config(fg=self._c("slider_inactive"))
+            self.label.config(fg=self._c("slider_inactive"))
         elif self.attr == "volume" and self.state.true_mute_active:
-            self.value_label.config(fg="#666666")
-            self.label.config(fg="#666666")
+            self.value_label.config(fg=self._c("slider_inactive"))
+            self.label.config(fg=self._c("slider_inactive"))
         elif self.toggle_attr and not getattr(self.state, self.toggle_attr, True):
-            self.value_label.config(fg="#777777")
-            self.label.config(fg="#777777")
+            self.value_label.config(fg=self._c("slider_text_muted"))
+            self.label.config(fg=self._c("slider_text_muted"))
         else:
-            self.value_label.config(fg="#aaaaaa")
-            self.label.config(fg="white")
+            self.value_label.config(fg=self._c("slider_text_muted"))
+            self.label.config(fg=self._c("slider_text"))
 
         self.canvas.create_line(
             10,
@@ -234,8 +237,8 @@ class ModernSlider(tk.Frame):
             y - 9,
             fill_x + 9,
             y + 9,
-            fill="#ffffff",
-            outline="#222222",
+            fill=self._c("slider_knob"),
+            outline=self._c("slider_knob_outline"),
             width=2,
         )
 
@@ -292,7 +295,7 @@ class ModernSlider(tk.Frame):
     def draw_toggle_indicator(self):
         self.toggle_indicator.delete("all")
         is_on = getattr(self.state, self.toggle_attr, False)
-        color = "#00ff88" if is_on else "#ff4444"
+        color = self._c("accent") if is_on else self._c("danger")
         self.toggle_indicator.create_oval(2, 2, 10, 10, fill=color, outline="")
 
     def on_toggle_click(self, event=None):
@@ -327,7 +330,7 @@ class ModernSlider(tk.Frame):
             self._reset_spin_after_id = None
 
         self._reset_in_progress = True
-        self._reset_color = "#c0c0c0"
+        self._reset_color = self._c("slider_text_muted")
         self._animate_reset_spin()
 
     def _settle_reset_icon(self, step=0, steps=8, start_angle=None, delta=None):
@@ -356,12 +359,12 @@ class ModernSlider(tk.Frame):
             self.after_cancel(self._reset_spin_after_id)
             self._reset_spin_after_id = None
 
-        self._reset_color = "#00ff88"
+        self._reset_color = self._c("accent")
         self._settle_reset_icon()
 
         def clear_flash():
             self._reset_angle = 0
-            self._reset_color = "#aaaaaa"
+            self._reset_color = self._c("slider_reset")
             self._draw_reset_icon()
 
         self._reset_flash_after_id = self.after(420, clear_flash)
@@ -389,3 +392,34 @@ class ModernSlider(tk.Frame):
             self._finish_reset_animation()
 
         self.after(220, apply_reset)
+
+    def _apply_theme_defaults(self):
+        defaults = {
+            "accent": "#00ff88",
+            "danger": "#ff4444",
+            "slider_bg": "#181824",
+            "slider_track": "#2a2a38",
+            "slider_text": "#ffffff",
+            "slider_text_muted": "#aaaaaa",
+            "slider_inactive": "#444444",
+            "slider_knob": "#ffffff",
+            "slider_knob_outline": "#222222",
+            "slider_reset": "#aaaaaa",
+        }
+        for k, v in defaults.items():
+            self.theme.setdefault(k, v)
+
+    def _c(self, key):
+        return self.theme.get(key)
+
+    def set_theme(self, theme):
+        self.theme = dict(theme or {})
+        self._apply_theme_defaults()
+        self.config(bg=self._c("slider_bg"))
+        if hasattr(self, "top_row"):
+            self.top_row.config(bg=self._c("slider_bg"))
+        for widget in (self.label, self.value_label, self.canvas, self.reset_btn):
+            widget.config(bg=self._c("slider_bg"))
+        if self.toggle_attr:
+            self.toggle_indicator.config(bg=self._c("slider_bg"))
+        self.draw()

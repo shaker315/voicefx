@@ -2,11 +2,13 @@ import tkinter as tk
 
 
 class MasterMeter(tk.Canvas):
-    def __init__(self, parent, state):
+    def __init__(self, parent, state, theme=None):
+        self.theme = theme or {}
+        self._apply_theme_defaults()
         super().__init__(
             parent,
             height=58,
-            bg="#0a0a0f",
+            bg=self._c("meter_bg"),
             highlightthickness=0,
         )
         self.state = state
@@ -26,11 +28,19 @@ class MasterMeter(tk.Canvas):
         top = 18
         bottom = height - 16
 
-        self.create_rectangle(left, top, right, bottom, fill="#141824", outline="#1f2433", width=1)
+        self.create_rectangle(
+            left,
+            top,
+            right,
+            bottom,
+            fill=self._c("meter_bg"),
+            outline=self._c("meter_border"),
+            width=1,
+        )
 
         for i in range(6):
             x = int(left + (right - left) * (i / 5))
-            self.create_line(x, top - 5, x, top - 1, fill="#2e3548", width=1)
+            self.create_line(x, top - 5, x, top - 1, fill=self._c("meter_tick"), width=1)
 
         inner_w = max(0, right - left - 2)
         lit = min(inner_w, fill_w)
@@ -61,19 +71,40 @@ class MasterMeter(tk.Canvas):
                 top + 2,
                 gate_x,
                 bottom - 2,
-                fill="#101622",
+                fill=self._c("meter_gate_fill"),
                 width=0,
                 stipple="gray25",
             )
-            self.create_line(gate_x, top + 1, gate_x, bottom - 1, fill="#6fa4ff", width=1)
+            self.create_line(gate_x, top + 1, gate_x, bottom - 1, fill=self._c("meter_gate_line"), width=1)
             self.create_text(
                 gate_x,
                 top - 8,
                 text="BRAMKA",
                 anchor="s",
-                fill="#6fa4ff",
+                fill=self._c("meter_gate_text"),
                 font=("Segoe UI", 7, "bold"),
             )
 
-        self.create_text(left, 10, text="WEJ", anchor="w", fill="#8f99b3", font=("Segoe UI", 8, "bold"))
-        self.create_text(right, 10, text=f"{level * 100:>3.0f}%", anchor="e", fill="#8f99b3", font=("Segoe UI", 8))
+        self.create_text(right, 10, text=f"{level * 100:>3.0f}%", anchor="e", fill=self._c("meter_text"), font=("Segoe UI", 8))
+
+    def _apply_theme_defaults(self):
+        defaults = {
+            "meter_bg": "#0a0a0f",
+            "meter_border": "#1f2433",
+            "meter_tick": "#2e3548",
+            "meter_text": "#8f99b3",
+            "meter_gate_fill": "#101622",
+            "meter_gate_line": "#6fa4ff",
+            "meter_gate_text": "#6fa4ff",
+        }
+        for k, v in defaults.items():
+            self.theme.setdefault(k, v)
+
+    def _c(self, key):
+        return self.theme.get(key)
+
+    def set_theme(self, theme):
+        self.theme = dict(theme or {})
+        self._apply_theme_defaults()
+        self.config(bg=self._c("meter_bg"))
+        self.draw()
