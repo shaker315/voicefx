@@ -84,22 +84,7 @@ def start_update(url, progress_cb=None, status_cb=None, cancel_event=None):
         return False, "Uruchomione nie jako EXE", False
 
     if _is_installer(url):
-        temp_installer = os.path.join(tempfile.gettempdir(), "VoiceFX-Setup.exe")
-        if status_cb:
-            status_cb("Pobieranie instalatora...")
-        ok, err = _download(url, temp_installer, progress_cb, status_cb, cancel_event)
-        if not ok:
-            if err == "Anulowano" and os.path.exists(temp_installer):
-                try:
-                    os.remove(temp_installer)
-                except Exception:
-                    pass
-            return False, err, False
-        try:
-            subprocess.Popen([temp_installer], close_fds=True)
-        except Exception as e:
-            return False, str(e), False
-        return True, "", True
+        return False, "URL wskazuje instalator. Podaj bezposredni plik EXE aplikacji.", False
 
     new_path = exe_path + ".new"
     if status_cb:

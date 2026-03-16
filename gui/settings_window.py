@@ -63,6 +63,7 @@ class SettingsWindow(tk.Toplevel):
             self.container,
             target_canvas=self.canvas,
             width=4,
+            bg=self.theme["scrollbar_bg"],
             thumb_color=self.theme["scrollbar_thumb"],
             auto_hide_delay=1400,
         )
@@ -389,7 +390,9 @@ class SettingsWindow(tk.Toplevel):
 
 
     def on_meter_toggle(self):
-        pass
+        self.app_state.show_meter = self.meter_var.get()
+        self.settings["show_meter"] = self.app_state.show_meter
+        self.app.gui.update_meter_visibility()
 
 
     def save_and_close(self):

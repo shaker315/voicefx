@@ -130,3 +130,13 @@ class UltraThinScrollbar(tk.Canvas):
 
         for part in self.thumb_parts:
             self.itemconfig(part, fill=color)
+
+    def set_theme(self, bg=None, thumb_color=None):
+        if bg is not None:
+            self.configure(bg=bg)
+        if thumb_color is not None:
+            self.base_color = thumb_color
+            try:
+                self.redraw(*self.target_canvas.yview())
+            except Exception:
+                pass

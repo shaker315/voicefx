@@ -5,6 +5,8 @@ from gui.components.slider import ModernSlider
 from gui.components.meter import MasterMeter
 from gui.settings_window import SettingsWindow
 from gui.components.scrollbar_style import UltraThinScrollbar
+from gui.loading.loading_app_screen import AppLoadingScreen
+from gui.loading.loading_update_screen import UpdateLoadingScreen
 from gui.theme import get_theme
 
 
@@ -25,8 +27,12 @@ class MainWindow:
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
+        self.app_loading_screen = AppLoadingScreen(self.root, self.theme)
+        self.update_loading_screen = UpdateLoadingScreen(self.root, self.theme)
+        self._active_loading_screen = None
+
         self.setup_geometry()
-        self.show_loading_screen(
+        self.show_app_loading_screen(
             title_text="Wczytywanie...",
             status_text="Przygotowanie interfejsu...",
             show_cancel=False,
@@ -446,227 +452,64 @@ class MainWindow:
     def run(self):
         self.root.mainloop()
 
-    def _show_loading_screen(self, title_text="Pobieranie aktualizacji", status_text="Wczytywanie..."):
-        if hasattr(self, "_loading") and self._loading:
-            self._loading_title.config(text=title_text)
-            self._loading_status.config(text=status_text)
-            return
-
-        self._loading = tk.Frame(self.root, bg=self.theme["loading_bg"])
-        self._loading.place(relx=0, rely=0, relwidth=1, relheight=1)
-        self._loading_title = tk.Label(
-            self._loading,
-            text=title_text,
-            fg=self.theme["loading_text"],
-            bg=self.theme["loading_bg"],
-            font=("Segoe UI", 14, "bold"),
+    def show_app_loading_screen(
+        self,
+        title_text="Wczytywanie...",
+        status_text="Przygotowanie interfejsu...",
+        show_cancel=False,
+    ):
+        self._active_loading_screen = self.app_loading_screen
+        self.app_loading_screen.show(
+            title_text=title_text,
+            status_text=status_text,
+            show_cancel=show_cancel,
         )
-        self._loading_title.place(relx=0.5, rely=0.42, anchor="center")
-
-        self._loading_status = tk.Label(
-            self._loading,
-            text=status_text,
-            fg=self.theme["loading_muted"],
-            bg=self.theme["loading_bg"],
-            font=("Segoe UI", 10),
-        )
-        self._loading_status.place(relx=0.5, rely=0.49, anchor="center")
-
-        bar_width = 320
-        bar_height = 18
-        self._loading_bar = tk.Canvas(
-            self._loading,
-            width=bar_width,
-            height=bar_height,
-            bg=self.theme["loading_bg"],
-            highlightthickness=0,
-        )
-        self._loading_bar.place(relx=0.5, rely=0.58, anchor="center")
-
-        self._loading_bar_bg = self._loading_bar.create_rectangle(
-            0,
-            0,
-            bar_width,
-            bar_height,
-            fill=self.theme["loading_bar_bg"],
-            outline="",
-        )
-        self._loading_bar_fill = self._loading_bar.create_rectangle(
-            0,
-            0,
-            0,
-            bar_height,
-            fill=self.theme["loading_bar_fill"],
-            outline="",
-        )
-
-        self._loading_percent = tk.Label(
-            self._loading,
-            text="0%",
-            fg=self.theme["loading_text"],
-            bg=self.theme["loading_bg"],
-            font=("Segoe UI", 11, "bold"),
-        )
-        self._loading_percent.place(relx=0.5, rely=0.66, anchor="center")
-        self._loading_cancel_btn = tk.Button(
-            self._loading,
-            text="Anuluj",
-            font=("Segoe UI", 10, "bold"),
-            bg=self.theme["button_bg"],
-            fg=self.theme["button_text"],
-            activebackground=self.theme["button_bg_hover"],
-            activeforeground=self.theme["button_text"],
-            relief="flat",
-            bd=0,
-            highlightthickness=0,
-            takefocus=0,
-            cursor="hand2",
-            command=self._on_loading_cancel,
-        )
-        self._loading_cancel_btn.place(relx=0.5, rely=0.76, anchor="center")
-        self._loading_cancel_cb = None
-        self._loading_target = 0
-        self._loading_current = 0
-        self._loading_anim_after = None
-        self._loading_indeterminate = False
-        self._loading_indeterminate_after = None
-        self._loading_indeterminate_pos = 0
-
-    def _hide_loading_screen(self):
-        if hasattr(self, "_loading") and self._loading:
-            self._loading.destroy()
-            self._loading = None
-
-    def _on_loading_cancel(self):
-        if self._loading_cancel_cb:
-            self._loading_cancel_cb()
-
-    def set_loading_cancel_callback(self, callback):
-        self._loading_cancel_cb = callback
-
-    def set_loading_cancel_enabled(self, enabled):
-        if hasattr(self, "_loading_cancel_btn"):
-            state = "normal" if enabled else "disabled"
-            self._loading_cancel_btn.config(state=state)
-
-    def set_loading_cancel_visible(self, visible):
-        if not hasattr(self, "_loading_cancel_btn"):
-            return
-        if visible:
-            self._loading_cancel_btn.place(relx=0.5, rely=0.76, anchor="center")
-        else:
-            self._loading_cancel_btn.place_forget()
-
-    def _apply_loading_progress(self, value):
-        bar_width = int(self._loading_bar.cget("width"))
-        fill_width = int(bar_width * (value / 100))
-        self._loading_bar.coords(
-            self._loading_bar_fill,
-            0,
-            0,
-            fill_width,
-            int(self._loading_bar.cget("height")),
-        )
-        self._loading_percent.config(text=f"{int(value)}%")
-
-    def _loading_anim_step(self):
-        if not hasattr(self, "_loading") or not self._loading:
-            self._loading_anim_after = None
-            return
-
-        target = int(self._loading_target)
-        current = int(self._loading_current)
-        if current == target:
-            self._loading_anim_after = None
-            return
-
-        delta = target - current
-        step = max(1, int(abs(delta) * 0.25))
-        if delta < 0:
-            step = -step
-        new_value = current + step
-        if (step > 0 and new_value > target) or (step < 0 and new_value < target):
-            new_value = target
-
-        self._loading_current = new_value
-        self._apply_loading_progress(new_value)
-
-        self._loading_anim_after = self.root.after(30, self._loading_anim_step)
-
-    def _loading_indeterminate_step(self):
-        if not hasattr(self, "_loading") or not self._loading or not self._loading_indeterminate:
-            self._loading_indeterminate_after = None
-            return
-
-        bar_width = int(self._loading_bar.cget("width"))
-        bar_height = int(self._loading_bar.cget("height"))
-        block_width = max(40, int(bar_width * 0.25))
-        speed = max(4, int(bar_width * 0.02))
-
-        self._loading_indeterminate_pos += speed
-        if self._loading_indeterminate_pos > bar_width + block_width:
-            self._loading_indeterminate_pos = -block_width
-
-        x0 = self._loading_indeterminate_pos
-        x1 = x0 + block_width
-        self._loading_bar.coords(self._loading_bar_fill, x0, 0, x1, bar_height)
-        self._loading_indeterminate_after = self.root.after(30, self._loading_indeterminate_step)
-
-    def set_loading_progress(self, percent, status_text=None, smooth=True):
-        if not hasattr(self, "_loading") or not self._loading:
-            return
-
-        if self._loading_indeterminate:
-            self.set_loading_indeterminate(False)
-
-        value = max(0, min(100, int(percent)))
-        self._loading_target = value
-
-        if not smooth:
-            self._loading_current = value
-            self._apply_loading_progress(value)
-        elif self._loading_anim_after is None:
-            self._loading_anim_after = self.root.after(0, self._loading_anim_step)
-
-        if status_text is not None:
-            self._loading_status.config(text=status_text)
-
-    def set_loading_status(self, status_text):
-        if hasattr(self, "_loading") and self._loading:
-            self._loading_status.config(text=status_text)
-
-    def set_loading_indeterminate(self, enabled, status_text=None):
-        if not hasattr(self, "_loading") or not self._loading:
-            return
-
-        self._loading_indeterminate = bool(enabled)
-        if status_text is not None:
-            self._loading_status.config(text=status_text)
-
-        if self._loading_indeterminate:
-            self._loading_indeterminate_pos = -40
-            if self._loading_indeterminate_after is None:
-                self._loading_indeterminate_after = self.root.after(0, self._loading_indeterminate_step)
-            self._loading_percent.config(text="...")
-        else:
-            if self._loading_indeterminate_after is not None:
-                try:
-                    self.root.after_cancel(self._loading_indeterminate_after)
-                except Exception:
-                    pass
-                self._loading_indeterminate_after = None
-            self._apply_loading_progress(self._loading_current)
 
     def show_loading_screen(
         self,
         title_text="Pobieranie aktualizacji",
         status_text="Wczytywanie...",
-        show_cancel=False,
+        show_cancel=True,
     ):
-        self._show_loading_screen(title_text=title_text, status_text=status_text)
-        self.set_loading_cancel_visible(show_cancel)
-        if not show_cancel:
-            self.set_loading_cancel_enabled(False)
+        self._active_loading_screen = self.update_loading_screen
+        self.update_loading_screen.show(
+            title_text=title_text,
+            status_text=status_text,
+            show_cancel=show_cancel,
+        )
+
+    def _get_active_loading_screen(self):
+        return self._active_loading_screen
+
+    def set_loading_cancel_callback(self, callback):
+        screen = self._get_active_loading_screen()
+        if screen:
+            screen.set_loading_cancel_callback(callback)
+
+    def set_loading_cancel_enabled(self, enabled):
+        screen = self._get_active_loading_screen()
+        if screen:
+            screen.set_loading_cancel_enabled(enabled)
+
+    def set_loading_cancel_visible(self, visible):
+        screen = self._get_active_loading_screen()
+        if screen:
+            screen.set_loading_cancel_visible(visible)
+
+    def set_loading_progress(self, percent, status_text=None, smooth=True):
+        screen = self._get_active_loading_screen()
+        if screen:
+            screen.set_loading_progress(percent, status_text=status_text, smooth=smooth)
+
+    def set_loading_status(self, status_text):
+        screen = self._get_active_loading_screen()
+        if screen:
+            screen.set_loading_status(status_text)
+
+    def set_loading_indeterminate(self, enabled, status_text=None):
+        screen = self._get_active_loading_screen()
+        if screen:
+            screen.set_loading_indeterminate(enabled, status_text=status_text)
 
     def apply_theme(self, theme_name):
         self.theme = get_theme(theme_name)
@@ -689,10 +532,14 @@ class MainWindow:
                 slider.set_theme(self.theme)
         if self.meter and hasattr(self.meter, "set_theme"):
             self.meter.set_theme(self.theme)
-        if hasattr(self, "_loading") and self._loading:
-            self._hide_loading_screen()
-            self._show_loading_screen()
+        self.app_loading_screen.apply_theme(self.theme)
+        self.update_loading_screen.apply_theme(self.theme)
         self.update_icons()
 
     def hide_loading_screen(self):
-        self._hide_loading_screen()
+        if self._active_loading_screen:
+            self._active_loading_screen.hide()
+            self._active_loading_screen = None
+        else:
+            self.app_loading_screen.hide()
+            self.update_loading_screen.hide()

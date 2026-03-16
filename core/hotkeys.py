@@ -25,6 +25,7 @@ class HotkeyManager:
             self.handlers.append(h)
         if true_mute_hotkey:
             h = keyboard.add_hotkey(true_mute_hotkey, self.toggle_true_mute)
+            self.handlers.append(h)
 
     def toggle_fx_master(self):
         state = self.app.state
