@@ -3,6 +3,12 @@ import numpy as np
 from .effects.distortion import DistortionEffect
 from .effects.bass import BassBoostEffect
 from .effects.saturation import SaturationEffect
+from .effects.shift import ShiftEffect
+from .effects.bitcrusher import BitcrusherEffect
+from .effects.exciter import ExciterEffect
+from .effects.tube import TubeEffect
+from .effects.sub_bass import SubBassEffect
+from .effects.echo import EchoEffect
 from .effects.noise_gate import NoiseGateEffect
 from .effects.compressor import CompressorEffect
 from .effects.limiter import SoftLimiterEffect
@@ -15,6 +21,12 @@ class AudioEngine:
 
         self.distortion = DistortionEffect()
         self.saturation = SaturationEffect()
+        self.shift = ShiftEffect()
+        self.bitcrusher = BitcrusherEffect()
+        self.exciter = ExciterEffect()
+        self.tube = TubeEffect()
+        self.sub_bass = SubBassEffect(samplerate=samplerate)
+        self.echo = EchoEffect(samplerate=samplerate)
         self.bass = BassBoostEffect(samplerate=samplerate)
         self.noise_gate = NoiseGateEffect(samplerate=samplerate)
         self.compressor = CompressorEffect()
@@ -38,10 +50,10 @@ class AudioEngine:
         if not self.state.mic_enabled:
             processed = np.zeros_like(processed)
 
-        if self.state.fx_master_on:
-            if self.state.noise_gate_on:
-                processed = self.noise_gate.process(processed, self.state)
+        if self.state.noise_gate_on:
+            processed = self.noise_gate.process(processed, self.state)
 
+        if self.state.fx_master_on:
             if self.state.bass_on:
                 processed = self.bass.process(processed, self.state)
 
@@ -49,6 +61,18 @@ class AudioEngine:
                 processed = self.distortion.process(processed, self.state)
             if self.state.saturation_on:
                 processed = self.saturation.process(processed, self.state)
+            if self.state.shift_on:
+                processed = self.shift.process(processed, self.state)
+            if self.state.bitcrusher_on:
+                processed = self.bitcrusher.process(processed, self.state)
+            if self.state.exciter_on:
+                processed = self.exciter.process(processed, self.state)
+            if self.state.tube_on:
+                processed = self.tube.process(processed, self.state)
+            if self.state.sub_bass_on:
+                processed = self.sub_bass.process(processed, self.state)
+            if self.state.echo_on:
+                processed = self.echo.process(processed, self.state)
 
         volume = self.state.volume
 

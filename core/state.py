@@ -12,10 +12,22 @@ class AppState:
             "saturation_on", settings.get("przester_on", False)
         )
         self.bass_on = settings.get("bass_on", False)
+        self.shift_on = settings.get("shift_on", False)
+        self.bitcrusher_on = settings.get("bitcrusher_on", False)
+        self.exciter_on = settings.get("exciter_on", False)
+        self.tube_on = settings.get("tube_on", False)
+        self.sub_bass_on = settings.get("sub_bass_on", False)
+        self.echo_on = settings.get("echo_on", False)
         self.noise_gate_on = settings.get("noise_gate_on", True)
         self.distortion = settings.get("distortion", 1.2)
         self.saturation = settings.get("saturation", settings.get("przester", 1.0))
         self.bass_gain = settings.get("bass_gain", 1.5)
+        self.shift = settings.get("shift", 1.0)
+        self.bitcrusher = settings.get("bitcrusher", 1.0)
+        self.exciter = settings.get("exciter", 1.0)
+        self.tube = settings.get("tube", 1.0)
+        self.sub_bass = settings.get("sub_bass", 1.0)
+        self.echo = min(4.0, settings.get("echo", 1.0))
         self.noise_gate_threshold = settings.get("noise_gate_threshold", 0.020)
         base_volume = settings.get("volume", 1.0)
         self.volume_fx_on = settings.get("volume_fx_on", base_volume)
@@ -38,7 +50,12 @@ class AppState:
             "distortion_on": self.distortion_on,
             "saturation_on": self.saturation_on,
             "bass_on": self.bass_on,
-            "noise_gate_on": self.noise_gate_on,
+            "shift_on": self.shift_on,
+            "bitcrusher_on": self.bitcrusher_on,
+            "exciter_on": self.exciter_on,
+            "tube_on": self.tube_on,
+            "sub_bass_on": self.sub_bass_on,
+            "echo_on": self.echo_on,
         }
 
         self.window_width = settings.get("window_width", 560)
@@ -54,7 +71,12 @@ class AppState:
             "distortion_on": self.distortion_on,
             "saturation_on": self.saturation_on,
             "bass_on": self.bass_on,
-            "noise_gate_on": self.noise_gate_on,
+            "shift_on": self.shift_on,
+            "bitcrusher_on": self.bitcrusher_on,
+            "exciter_on": self.exciter_on,
+            "tube_on": self.tube_on,
+            "sub_bass_on": self.sub_bass_on,
+            "echo_on": self.echo_on,
         }
         self._pre_monitor_state_gui = self.monitor_on
         self._enforce_volume_limit()
@@ -82,12 +104,22 @@ class AppState:
                 "distortion_on": self.distortion_on,
                 "saturation_on": self.saturation_on,
                 "bass_on": self.bass_on,
-                "noise_gate_on": self.noise_gate_on,
+                "shift_on": self.shift_on,
+                "bitcrusher_on": self.bitcrusher_on,
+                "exciter_on": self.exciter_on,
+                "tube_on": self.tube_on,
+                "sub_bass_on": self.sub_bass_on,
+                "echo_on": self.echo_on,
             }
             self.distortion_on = False
             self.saturation_on = False
             self.bass_on = False
-            self.noise_gate_on = False
+            self.shift_on = False
+            self.bitcrusher_on = False
+            self.exciter_on = False
+            self.tube_on = False
+            self.sub_bass_on = False
+            self.echo_on = False
             self.fx_master_on = False
             self.volume_fx_on = self.volume
             self.volume = self.volume_fx_off
@@ -98,7 +130,12 @@ class AppState:
             self.distortion_on = self._pre_fx_state.get("distortion_on", False)
             self.saturation_on = self._pre_fx_state.get("saturation_on", False)
             self.bass_on = self._pre_fx_state.get("bass_on", False)
-            self.noise_gate_on = self._pre_fx_state.get("noise_gate_on", True)
+            self.shift_on = self._pre_fx_state.get("shift_on", False)
+            self.bitcrusher_on = self._pre_fx_state.get("bitcrusher_on", False)
+            self.exciter_on = self._pre_fx_state.get("exciter_on", False)
+            self.tube_on = self._pre_fx_state.get("tube_on", False)
+            self.sub_bass_on = self._pre_fx_state.get("sub_bass_on", False)
+            self.echo_on = self._pre_fx_state.get("echo_on", False)
             self.fx_master_on = True
             self.volume_fx_off = self.volume
             self.volume = self.volume_fx_on
@@ -119,6 +156,12 @@ class AppState:
                 "distortion_on": self.distortion_on,
                 "saturation_on": self.saturation_on,
                 "bass_on": self.bass_on,
+                "shift_on": self.shift_on,
+                "bitcrusher_on": self.bitcrusher_on,
+                "exciter_on": self.exciter_on,
+                "tube_on": self.tube_on,
+                "sub_bass_on": self.sub_bass_on,
+                "echo_on": self.echo_on,
                 "noise_gate_on": self.noise_gate_on,
             }
             self.mic_enabled = False
@@ -127,6 +170,12 @@ class AppState:
             self.distortion_on = False
             self.saturation_on = False
             self.bass_on = False
+            self.shift_on = False
+            self.bitcrusher_on = False
+            self.exciter_on = False
+            self.tube_on = False
+            self.sub_bass_on = False
+            self.echo_on = False
             self.noise_gate_on = False
             self.true_mute_active = True
 
@@ -139,6 +188,12 @@ class AppState:
             self.distortion_on = self._pre_mute_state.get("distortion_on", False)
             self.saturation_on = self._pre_mute_state.get("saturation_on", False)
             self.bass_on = self._pre_mute_state.get("bass_on", False)
+            self.shift_on = self._pre_mute_state.get("shift_on", False)
+            self.bitcrusher_on = self._pre_mute_state.get("bitcrusher_on", False)
+            self.exciter_on = self._pre_mute_state.get("exciter_on", False)
+            self.tube_on = self._pre_mute_state.get("tube_on", False)
+            self.sub_bass_on = self._pre_mute_state.get("sub_bass_on", False)
+            self.echo_on = self._pre_mute_state.get("echo_on", False)
             self.noise_gate_on = self._pre_mute_state.get("noise_gate_on", True)
             self.true_mute_active = False
 
@@ -149,11 +204,13 @@ class AppState:
         self.distortion = 1.0
         self.saturation = 1.0
         self.bass_gain = 1.0
+        self.shift = 1.0
+        self.bitcrusher = 1.0
+        self.exciter = 1.0
+        self.tube = 1.0
+        self.sub_bass = 1.0
+        self.echo = 1.0
         self.noise_gate_threshold = 0.020
-        self.monitor_volume = 1.0
-        self.volume_fx_on = 1.0
-        self.volume_fx_off = 1.0
-        self.volume = 1.0
     
     def toggle_meter(self):
         self.show_meter = not self.show_meter

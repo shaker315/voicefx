@@ -62,6 +62,12 @@ class HotkeyManager:
         settings["distortion_on"] = s.distortion_on
         settings["saturation_on"] = s.saturation_on
         settings["bass_on"] = s.bass_on
+        settings["shift_on"] = s.shift_on
+        settings["bitcrusher_on"] = s.bitcrusher_on
+        settings["exciter_on"] = s.exciter_on
+        settings["tube_on"] = s.tube_on
+        settings["sub_bass_on"] = s.sub_bass_on
+        settings["echo_on"] = s.echo_on
         settings["noise_gate_on"] = s.noise_gate_on
         settings["fx_master_on"] = s.fx_master_on
         settings["monitor_on"] = s.monitor_on
@@ -69,6 +75,12 @@ class HotkeyManager:
         settings["volume_fx_on"] = s.volume_fx_on
         settings["volume_fx_off"] = s.volume_fx_off
         settings["monitor_volume"] = s.monitor_volume
+        settings["shift"] = s.shift
+        settings["bitcrusher"] = s.bitcrusher
+        settings["exciter"] = s.exciter
+        settings["tube"] = s.tube
+        settings["sub_bass"] = s.sub_bass
+        settings["echo"] = s.echo
         settings["noise_gate_threshold"] = s.noise_gate_threshold
 
         save_settings(settings)

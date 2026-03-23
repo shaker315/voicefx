@@ -15,6 +15,16 @@ from gui.main_window import MainWindow
 
 
 class VoiceFXApp:
+    def _resolve_icon_path(self, filename):
+        base_dir = os.path.dirname(__file__)
+        candidates = [
+            os.path.join(base_dir, "assets", "icons", filename),
+            os.path.join(base_dir, "assets", filename),
+        ]
+        for path in candidates:
+            if os.path.exists(path):
+                return os.path.abspath(path)
+        return os.path.abspath(candidates[0])
 
     def __init__(self):
         self._show_splash()
@@ -69,9 +79,7 @@ class VoiceFXApp:
             if not exe_path.lower().endswith(".exe"):
                 return
 
-            icon_path = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), "assets", "icon.ico")
-            )
+            icon_path = self._resolve_icon_path("icon.ico")
             if not os.path.exists(icon_path):
                 return
 
@@ -105,7 +113,7 @@ class VoiceFXApp:
             splash.overrideredirect(True)
             splash.configure(bg="#0f0f14")
 
-            icon_path = os.path.join(os.path.dirname(__file__), "assets", "icon.png")
+            icon_path = self._resolve_icon_path("icon.png")
             img = None
             if os.path.exists(icon_path):
                 img = tk.PhotoImage(file=icon_path)
@@ -181,16 +189,16 @@ class VoiceFXApp:
             except Exception:
                 pass
 
-            def progress_cb(percent, downloaded, total):
+            def progress_cb(percent, downloaded, total, speed=0):
                 def ui():
                     if total > 0:
-                        mb = downloaded / (1024 * 1024)
-                        mb_total = total / (1024 * 1024)
-                        status = f"Pobieranie... {mb:.1f}/{mb_total:.1f} MB"
+                        status = "Pobieranie aktualizacji..."
                         self.gui.set_loading_indeterminate(False)
+                        self.gui.set_loading_details(downloaded, total, speed)
                     else:
                         status = "Pobieranie..."
                         self.gui.set_loading_indeterminate(True, status_text=status)
+                        self.gui.set_loading_details(downloaded, total, speed)
                         return
                     self.gui.set_loading_progress(percent, status_text=status, smooth=True)
                 try:

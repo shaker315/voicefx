@@ -1,4 +1,5 @@
 import math
+import time
 import tkinter as tk
 from gui.components.tooltip import Tooltip
 
@@ -40,12 +41,16 @@ class ModernSlider(tk.Frame):
         self._reset_in_progress = False
         self._reset_angle = 0
         self._reset_color = self._c("slider_reset")
+        self._draw_after_id = None
 
         self.columnconfigure(0, weight=1)
 
         self.top_row = tk.Frame(self, bg=self._c("slider_bg"))
-        self.top_row.grid(row=0, column=0, sticky="ew", padx=10, pady=(6, 0))
+        self.top_row.grid(row=0, column=0, sticky="ew", padx=10, pady=(4, 0))
         self.top_row.columnconfigure(0, weight=1)
+        self.top_row.columnconfigure(1, weight=0)
+        self.top_row.columnconfigure(2, weight=0)
+        self.top_row.columnconfigure(3, weight=0)
 
         self.label = tk.Label(
             self.top_row,
@@ -56,6 +61,15 @@ class ModernSlider(tk.Frame):
         )
         self.label.grid(row=0, column=0, sticky="w")
 
+        self.value_label = tk.Label(
+            self.top_row,
+            text="0.00",
+            bg=self._c("slider_bg"),
+            fg=self._c("slider_text_muted"),
+            font=("Segoe UI", 9),
+        )
+        self.value_label.grid(row=0, column=1, sticky="e", padx=(8, 0))
+
         self.reset_btn = tk.Canvas(
             self.top_row,
             width=16,
@@ -64,7 +78,7 @@ class ModernSlider(tk.Frame):
             highlightthickness=0,
             cursor="hand2",
         )
-        self.reset_btn.grid(row=0, column=2, padx=(4, 0))
+        self.reset_btn.grid(row=0, column=3, padx=(4, 0))
         self.reset_btn.bind("<Button-1>", self.reset_single_fx)
         Tooltip(self.reset_btn, "Ustaw domyslnie")
         self._draw_reset_icon()
@@ -78,29 +92,20 @@ class ModernSlider(tk.Frame):
                 highlightthickness=0,
                 cursor="hand2",
             )
-            self.toggle_indicator.grid(row=0, column=1, padx=6)
+            self.toggle_indicator.grid(row=0, column=2, padx=(8, 2))
             self.toggle_indicator.bind("<Button-1>", self.on_toggle_click)
 
         self.canvas = tk.Canvas(
             self,
-            height=28,
+            height=20,
             bg=self._c("slider_bg"),
             highlightthickness=0,
         )
-        self.canvas.grid(row=1, column=0, sticky="ew", padx=10, pady=4)
+        self.canvas.grid(row=1, column=0, sticky="ew", padx=10, pady=(2, 4))
 
         self.canvas.bind("<Button-1>", self.click)
         self.canvas.bind("<B1-Motion>", self.drag)
         self.canvas.bind("<Configure>", lambda e: self.draw())
-
-        self.value_label = tk.Label(
-            self,
-            text="0.00",
-            bg=self._c("slider_bg"),
-            fg=self._c("slider_text_muted"),
-            font=("Segoe UI", 9),
-        )
-        self.value_label.grid(row=2, column=0, pady=(0, 6))
 
         self.draw()
 
@@ -156,12 +161,12 @@ class ModernSlider(tk.Frame):
 
         width = self.canvas.winfo_width()
         if width < 10:
-            self.after(10, self.draw)
+            self._schedule_draw(10)
             return
 
-        track_height = 10
-        fill_height = 5
-        y = 14
+        track_height = 8
+        fill_height = 4
+        y = 10
 
         min_val, max_val = self._get_effective_bounds()
         target_value = float(getattr(self.state, self.attr, self.value))
@@ -233,10 +238,10 @@ class ModernSlider(tk.Frame):
         )
 
         self.canvas.create_oval(
-            fill_x - 9,
-            y - 9,
-            fill_x + 9,
-            y + 9,
+            fill_x - 8,
+            y - 8,
+            fill_x + 8,
+            y + 8,
             fill=self._c("slider_knob"),
             outline=self._c("slider_knob_outline"),
             width=2,
@@ -246,6 +251,14 @@ class ModernSlider(tk.Frame):
 
         if self.toggle_attr:
             self.draw_toggle_indicator()
+
+        needs_animation = (
+            abs(target_value - self.value) >= 0.01
+            or abs(min_val - self._display_min) >= 0.001
+            or abs(max_val - self._display_max) >= 0.001
+        )
+        if needs_animation:
+            self._schedule_draw()
 
 
     def set_value_from_x(self, x):
@@ -290,6 +303,22 @@ class ModernSlider(tk.Frame):
 
     def drag(self, event):
         self.set_value_from_x(event.x)
+
+    def _schedule_draw(self, delay=16):
+        if self._draw_after_id is not None:
+            return
+        self._draw_after_id = self.after(delay, self._run_scheduled_draw)
+
+    def _run_scheduled_draw(self):
+        self._draw_after_id = None
+        if not self.winfo_exists():
+            return
+        top = self.winfo_toplevel()
+        scroll_active_until = getattr(top, "_voicefx_scroll_active_until", 0.0)
+        if time.monotonic() < scroll_active_until:
+            self._schedule_draw(20)
+            return
+        self.draw()
 
 
     def draw_toggle_indicator(self):
@@ -393,6 +422,21 @@ class ModernSlider(tk.Frame):
 
         self.after(220, apply_reset)
 
+    def animate_reset(self, apply_callback=None, delay=220):
+        if self._reset_in_progress:
+            return
+
+        self._start_reset_animation()
+
+        def finish():
+            if apply_callback:
+                apply_callback()
+            self._intro_active = False
+            self.draw()
+            self._finish_reset_animation()
+
+        self.after(delay, finish)
+
     def _apply_theme_defaults(self):
         defaults = {
             "accent": "#00ff88",
@@ -423,3 +467,18 @@ class ModernSlider(tk.Frame):
         if self.toggle_attr:
             self.toggle_indicator.config(bg=self._c("slider_bg"))
         self.draw()
+
+    def destroy(self):
+        for after_id in (
+            self._draw_after_id,
+            self._reset_spin_after_id,
+            self._reset_settle_after_id,
+            self._reset_flash_after_id,
+        ):
+            if after_id is not None:
+                try:
+                    self.after_cancel(after_id)
+                except Exception:
+                    pass
+        self._draw_after_id = None
+        super().destroy()

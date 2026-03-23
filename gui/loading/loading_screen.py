@@ -9,12 +9,18 @@ class LoadingScreen:
         default_title="Wczytywanie...",
         default_status="Przygotowanie...",
         default_show_cancel=False,
+        show_progress_bar=True,
+        show_progress_percent=True,
+        show_download_details=False,
     ):
         self.root = root
         self.theme = theme
         self.default_title = default_title
         self.default_status = default_status
         self.default_show_cancel = default_show_cancel
+        self.show_progress_bar = show_progress_bar
+        self.show_progress_percent = show_progress_percent
+        self.show_download_details = show_download_details
 
         self._loading = None
         self._loading_title = None
@@ -23,6 +29,7 @@ class LoadingScreen:
         self._loading_bar_bg = None
         self._loading_bar_fill = None
         self._loading_percent = None
+        self._loading_details = None
         self._loading_cancel_btn = None
 
         self._loading_cancel_cb = None
@@ -67,42 +74,54 @@ class LoadingScreen:
         )
         self._loading_status.place(relx=0.5, rely=0.49, anchor="center")
 
-        bar_width = 320
-        bar_height = 18
-        self._loading_bar = tk.Canvas(
-            self._loading,
-            width=bar_width,
-            height=bar_height,
-            bg=self.theme["loading_bg"],
-            highlightthickness=0,
-        )
-        self._loading_bar.place(relx=0.5, rely=0.58, anchor="center")
+        if self.show_progress_bar:
+            bar_width = 320
+            bar_height = 18
+            self._loading_bar = tk.Canvas(
+                self._loading,
+                width=bar_width,
+                height=bar_height,
+                bg=self.theme["loading_bg"],
+                highlightthickness=0,
+            )
+            self._loading_bar.place(relx=0.5, rely=0.58, anchor="center")
 
-        self._loading_bar_bg = self._loading_bar.create_rectangle(
-            0,
-            0,
-            bar_width,
-            bar_height,
-            fill=self.theme["loading_bar_bg"],
-            outline="",
-        )
-        self._loading_bar_fill = self._loading_bar.create_rectangle(
-            0,
-            0,
-            0,
-            bar_height,
-            fill=self.theme["loading_bar_fill"],
-            outline="",
-        )
+            self._loading_bar_bg = self._loading_bar.create_rectangle(
+                0,
+                0,
+                bar_width,
+                bar_height,
+                fill=self.theme["loading_bar_bg"],
+                outline="",
+            )
+            self._loading_bar_fill = self._loading_bar.create_rectangle(
+                0,
+                0,
+                0,
+                bar_height,
+                fill=self.theme["loading_bar_fill"],
+                outline="",
+            )
 
-        self._loading_percent = tk.Label(
-            self._loading,
-            text="0%",
-            fg=self.theme["loading_text"],
-            bg=self.theme["loading_bg"],
-            font=("Segoe UI", 11, "bold"),
-        )
-        self._loading_percent.place(relx=0.5, rely=0.66, anchor="center")
+        if self.show_progress_percent:
+            self._loading_percent = tk.Label(
+                self._loading,
+                text="0%",
+                fg=self.theme["loading_text"],
+                bg=self.theme["loading_bg"],
+                font=("Segoe UI", 11, "bold"),
+            )
+            self._loading_percent.place(relx=0.5, rely=0.66, anchor="center")
+
+        if self.show_download_details:
+            self._loading_details = tk.Label(
+                self._loading,
+                text="0 B / 0 B  |  0 B/s",
+                fg=self.theme["loading_muted"],
+                bg=self.theme["loading_bg"],
+                font=("Segoe UI", 9),
+            )
+            self._loading_details.place(relx=0.5, rely=0.71, anchor="center")
 
         self._loading_cancel_btn = tk.Button(
             self._loading,
@@ -169,6 +188,10 @@ class LoadingScreen:
             self._loading_cancel_btn.place_forget()
 
     def _apply_loading_progress(self, value):
+        if not self._loading_bar or not self._loading_percent:
+            if self._loading_percent:
+                self._loading_percent.config(text=f"{int(value)}%")
+            return
         bar_width = int(self._loading_bar.cget("width"))
         fill_width = int(bar_width * (value / 100))
         self._loading_bar.coords(
@@ -242,6 +265,14 @@ class LoadingScreen:
         if status_text is not None:
             self._loading_status.config(text=status_text)
 
+    def set_loading_details(self, downloaded_bytes, total_bytes, speed_bytes_per_sec):
+        if not self._loading or not self._loading_details:
+            return
+        downloaded_text = self._format_bytes(downloaded_bytes)
+        total_text = self._format_bytes(total_bytes) if total_bytes > 0 else "?"
+        speed_text = self._format_bytes(speed_bytes_per_sec) + "/s"
+        self._loading_details.config(text=f"{downloaded_text} / {total_text}  |  {speed_text}")
+
     def set_loading_status(self, status_text):
         if self._loading:
             self._loading_status.config(text=status_text)
@@ -258,7 +289,8 @@ class LoadingScreen:
             self._loading_indeterminate_pos = -40
             if self._loading_indeterminate_after is None:
                 self._loading_indeterminate_after = self.root.after(0, self._loading_indeterminate_step)
-            self._loading_percent.config(text="...")
+            if self._loading_percent:
+                self._loading_percent.config(text="...")
         else:
             if self._loading_indeterminate_after is not None:
                 try:
@@ -282,16 +314,34 @@ class LoadingScreen:
             fg=self.theme["loading_muted"],
             bg=self.theme["loading_bg"],
         )
-        self._loading_bar.config(bg=self.theme["loading_bg"])
-        self._loading_bar.itemconfig(self._loading_bar_bg, fill=self.theme["loading_bar_bg"])
-        self._loading_bar.itemconfig(self._loading_bar_fill, fill=self.theme["loading_bar_fill"])
-        self._loading_percent.config(
-            fg=self.theme["loading_text"],
-            bg=self.theme["loading_bg"],
-        )
+        if self._loading_bar:
+            self._loading_bar.config(bg=self.theme["loading_bg"])
+            self._loading_bar.itemconfig(self._loading_bar_bg, fill=self.theme["loading_bar_bg"])
+            self._loading_bar.itemconfig(self._loading_bar_fill, fill=self.theme["loading_bar_fill"])
+        if self._loading_percent:
+            self._loading_percent.config(
+                fg=self.theme["loading_text"],
+                bg=self.theme["loading_bg"],
+            )
+        if self._loading_details:
+            self._loading_details.config(
+                fg=self.theme["loading_muted"],
+                bg=self.theme["loading_bg"],
+            )
         self._loading_cancel_btn.config(
             bg=self.theme["button_bg"],
             fg=self.theme["button_text"],
             activebackground=self.theme["button_bg_hover"],
             activeforeground=self.theme["button_text"],
         )
+
+    def _format_bytes(self, value):
+        value = max(0, float(value))
+        units = ["B", "KB", "MB", "GB"]
+        idx = 0
+        while value >= 1024 and idx < len(units) - 1:
+            value /= 1024.0
+            idx += 1
+        if idx == 0:
+            return f"{int(value)} {units[idx]}"
+        return f"{value:.1f} {units[idx]}"

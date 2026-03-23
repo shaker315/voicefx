@@ -4,6 +4,7 @@ import sys
 import tempfile
 import urllib.request
 import subprocess
+import time
 
 
 def _parse_version(v):
@@ -50,8 +51,9 @@ def _download(url, dest_path, progress_cb=None, status_cb=None, cancel_event=Non
             total = int(r.headers.get("Content-Length", "0") or 0)
             downloaded = 0
             chunk_size = 64 * 1024
+            started_at = time.monotonic()
             if progress_cb and total == 0:
-                progress_cb(0, 0, 0)
+                progress_cb(0, 0, 0, 0)
 
             with open(dest_path, "wb") as f:
                 while True:
@@ -64,10 +66,14 @@ def _download(url, dest_path, progress_cb=None, status_cb=None, cancel_event=Non
                     downloaded += len(chunk)
                     if progress_cb and total > 0:
                         percent = int((downloaded / total) * 100)
-                        progress_cb(percent, downloaded, total)
+                        elapsed = max(0.001, time.monotonic() - started_at)
+                        speed = downloaded / elapsed
+                        progress_cb(percent, downloaded, total, speed)
 
         if progress_cb:
-            progress_cb(100, downloaded, total)
+            elapsed = max(0.001, time.monotonic() - started_at)
+            speed = downloaded / elapsed
+            progress_cb(100, downloaded, total, speed)
         return True, ""
     except Exception as e:
         return False, str(e)
@@ -84,7 +90,20 @@ def start_update(url, progress_cb=None, status_cb=None, cancel_event=None):
         return False, "Uruchomione nie jako EXE", False
 
     if _is_installer(url):
-        return False, "URL wskazuje instalator. Podaj bezposredni plik EXE aplikacji.", False
+        temp_installer = os.path.join(tempfile.gettempdir(), "VoiceFX-Setup.exe")
+        if status_cb:
+            status_cb("Pobieranie instalatora...")
+        ok, err = _download(url, temp_installer, progress_cb, status_cb, cancel_event)
+        if not ok:
+            return False, err, False
+        try:
+            subprocess.Popen(
+                [temp_installer, "/SILENT", "/NORESTART", "/SUPPRESSMSGBOXES"],
+                close_fds=True,
+            )
+        except Exception as e:
+            return False, str(e), False
+        return True, "", True
 
     new_path = exe_path + ".new"
     if status_cb:

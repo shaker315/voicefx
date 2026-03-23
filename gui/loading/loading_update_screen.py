@@ -9,4 +9,7 @@ class UpdateLoadingScreen(LoadingScreen):
             default_title="Pobieranie aktualizacji",
             default_status="Przygotowanie...",
             default_show_cancel=True,
+            show_progress_bar=True,
+            show_progress_percent=True,
+            show_download_details=True,
         )

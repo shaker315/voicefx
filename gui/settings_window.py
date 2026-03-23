@@ -95,7 +95,12 @@ class SettingsWindow(tk.Toplevel):
             self.canvas.yview_moveto(0)
 
     def _on_mousewheel(self, event):
+        if not self.winfo_exists():
+            return "break"
+        if not hasattr(self, "canvas") or not self.canvas.winfo_exists():
+            return "break"
         self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        return "break"
 
 
     def _configure_styles(self):
@@ -235,9 +240,8 @@ class SettingsWindow(tk.Toplevel):
 
         self.meter_checkbox = ctk.CTkCheckBox(
             view_card,
-            text="Pokaz dolny meter",
+            text="Pokaz meter",
             variable=self.meter_var,
-            command=self.on_meter_toggle,
             fg_color=self.accent,
             hover_color=self.theme["accent_hover"],
             text_color=self.fg_primary,
@@ -389,12 +393,6 @@ class SettingsWindow(tk.Toplevel):
         return entry
 
 
-    def on_meter_toggle(self):
-        self.app_state.show_meter = self.meter_var.get()
-        self.settings["show_meter"] = self.app_state.show_meter
-        self.app.gui.update_meter_visibility()
-
-
     def save_and_close(self):
         if not self.mic_hotkey_var.get() or not self.monitor_hotkey_var.get():
             messagebox.showerror("Blad", "Skroty nie moga byc puste")
@@ -437,17 +435,32 @@ class SettingsWindow(tk.Toplevel):
 
         self.app_state.show_meter = self.meter_var.get()
         self.app_state.theme = selected_theme
-        self.app.gui.update_meter_visibility()
-        self.app.gui.apply_theme(selected_theme)
 
         from core.settings import save_settings
 
         save_settings(self.settings)
         self.app.hotkeys.register()
         self.app.stream_manager.restart(input_id, output_id)
+        gui = getattr(self.app, "gui", None)
+        if gui and hasattr(gui, "root") and gui.root.winfo_exists():
+            gui.root.after(
+                10,
+                lambda: (
+                    gui.update_meter_visibility(),
+                    gui.apply_theme(selected_theme),
+                    gui.refresh_scroll_bindings(),
+                ),
+            )
         self.destroy()
 
 
     def on_close(self):
+        try:
+            self.canvas.unbind_all("<MouseWheel>")
+        except Exception:
+            pass
         self.app.hotkeys.register()
+        gui = getattr(self.app, "gui", None)
+        if gui and hasattr(gui, "refresh_scroll_bindings"):
+            gui.refresh_scroll_bindings()
         self.destroy()
