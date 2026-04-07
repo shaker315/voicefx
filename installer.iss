@@ -1,6 +1,6 @@
 ﻿[Setup]
 AppName=VOICE FX PRO
-AppVersion=1.0.7
+AppVersion=1.0.8
 DefaultDirName={pf}\VoiceFX
 DefaultGroupName=VOICE FX PRO
 OutputDir=installer

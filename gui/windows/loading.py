@@ -1,4 +1,5 @@
-﻿import os
+import os
+import sys
 import time
 import threading
 import tkinter as tk
@@ -40,8 +41,12 @@ class AppLoadingScreen:
         self._first_frame = None
 
     def _resolve_gif_path(self):
-        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-        return os.path.join(base_dir, "assets", "giphs", "loading_app.gif")
+        if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+            base_dir = sys._MEIPASS
+        else:
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        filename = "loading_app.gif"
+        return os.path.join(base_dir, "assets", "giphs", filename)
 
     def _load_frames_all(self):
         self._tk_frames = []
@@ -508,7 +513,10 @@ class StartupSplash:
         self._window_size = (280, 340)
 
     def _resolve_gif_path(self):
-        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+            base_dir = sys._MEIPASS
+        else:
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
         filename = "loading_app.gif"
         return os.path.join(base_dir, "assets", "giphs", filename)
 
@@ -673,3 +681,4 @@ class StartupSplash:
 
     def apply_theme(self, theme):
         return
+
