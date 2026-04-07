@@ -585,7 +585,7 @@ class StartupSplash:
 
     def _content_center(self):
         width, height = self._window_size
-        return width // 2, height // 2 * 0.87
+        return width // 2, int((height // 2) * 0.87)
 
     def _animate(self):
         if not self.window or not self.window.winfo_exists() or not self.canvas or not self._frames or self._image_id is None:

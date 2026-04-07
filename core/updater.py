@@ -26,10 +26,25 @@ def _is_newer(remote, local):
     return r > l
 
 
+def _fetch_text(url, timeout=10):
+    final_url = url
+    sep = "&" if "?" in url else "?"
+    final_url = f"{url}{sep}_t={int(time.time())}"
+    req = urllib.request.Request(
+        final_url,
+        headers={
+            "User-Agent": "VoiceFX-Updater/1.0",
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.read().decode("utf-8")
+
+
 def check_for_update(current_version, version_url):
     try:
-        with urllib.request.urlopen(version_url, timeout=5) as r:
-            data = r.read().decode("utf-8")
+        data = _fetch_text(version_url, timeout=10)
         info = json.loads(data)
         remote_version = info.get("version", "")
         url = info.get("url", "") or info.get("download_url", "")

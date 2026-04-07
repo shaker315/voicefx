@@ -241,7 +241,7 @@ class MainWindow:
         self.refresh_loop()
         self.root.update_idletasks()
         self._startup_done = True
-        self._finish_startup_after_delay
+        self._finish_startup_after_delay()
 
     def _finish_startup_after_delay(self):
         self.hide_loading_screen()
