@@ -1,10 +1,8 @@
 ﻿settings.json
-# build artifacts
 build/
 dist/
 installer/
 __pycache__/
 *.pyc
 *.spec
-settings.json
 vc_redist.x64.exe

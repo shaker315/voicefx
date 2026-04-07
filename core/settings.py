@@ -14,6 +14,8 @@ KEY_PATHS = {
     "tube_on": ("fx", "tube_on"),
     "sub_bass_on": ("fx", "sub_bass_on"),
     "echo_on": ("fx", "echo_on"),
+    "megafon_on": ("fx", "megafon_on"),
+    "stare_radio_on": ("fx", "stare_radio_on"),
     "noise_gate_on": ("fx", "noise_gate_on"),
     "fx_master_on": ("fx", "fx_master_on"),
     "distortion": ("fx", "distortion"),
@@ -25,6 +27,8 @@ KEY_PATHS = {
     "tube": ("fx", "tube"),
     "sub_bass": ("fx", "sub_bass"),
     "echo": ("fx", "echo"),
+    "megafon": ("fx", "megafon"),
+    "stare_radio": ("fx", "stare_radio"),
     "noise_gate_threshold": ("fx", "noise_gate_threshold"),
     "mic_enabled": ("audio", "mic_enabled"),
     "monitor_on": ("audio", "monitor_on"),
@@ -49,10 +53,13 @@ KEY_PATHS = {
     "show_effect_tube": ("gui", "show_effect_tube"),
     "show_effect_sub_bass": ("gui", "show_effect_sub_bass"),
     "show_effect_echo": ("gui", "show_effect_echo"),
+    "show_effect_megafon": ("gui", "show_effect_megafon"),
+    "show_effect_stare_radio": ("gui", "show_effect_stare_radio"),
     "shortcut_created": ("gui", "shortcut_created"),
     "theme": ("gui", "theme"),
     "default_input_device": ("devices", "default_input_device"),
     "default_output_device": ("devices", "default_output_device"),
+    "default_virtual_output_device": ("devices", "default_virtual_output_device"),
 }
 
 default_settings = {
@@ -78,6 +85,8 @@ default_settings = {
     "tube": 1.0,
     "sub_bass": 1.0,
     "echo": 1.0,
+    "megafon": 1.0,
+    "stare_radio": 1.0,
     "noise_gate_threshold": 0.020,
     "volume": 1.0,
     "volume_fx_on": 1.0,
@@ -100,10 +109,13 @@ default_settings = {
     "show_effect_tube": True,
     "show_effect_sub_bass": True,
     "show_effect_echo": True,
+    "show_effect_megafon": True,
+    "show_effect_stare_radio": True,
     "shortcut_created": False,
     "theme": "dark",
     "default_input_device": None,
     "default_output_device": None,
+    "default_virtual_output_device": None,
 }
 
 

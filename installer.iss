@@ -1,11 +1,11 @@
 ﻿[Setup]
 AppName=VOICE FX PRO
-AppVersion=1.0.0
+AppVersion=1.0.5
 DefaultDirName={pf}\VoiceFX
 DefaultGroupName=VOICE FX PRO
 OutputDir=installer
 OutputBaseFilename=VoiceFX-Setup
-SetupIconFile=assets\icon.ico
+SetupIconFile=assets\icons\icon.ico
 UninstallDisplayIcon={app}\VoiceFX.exe
 Compression=lzma
 SolidCompression=yes

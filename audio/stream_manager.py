@@ -50,15 +50,41 @@ class StreamManager:
                 self.monitor_stream.write(out)
 
         except Exception as e:
-            print("Blad callbacku audio:", e)
+            print("Błąd callbacku audio:", e)
 
     def start(self):
         self.restart(
             self.state.default_input_device,
             self.state.default_output_device,
+            self.state.default_virtual_output_device,
         )
 
-    def restart(self, input_id=None, monitor_output_id=None):
+    def _is_virtual_output_device(self, device_name):
+        name = str(device_name).lower()
+        keywords = (
+            "cable input",
+            "vb-audio",
+            "voicemeeter",
+            "voice meeter",
+            "virtual",
+            "obs",
+            "blackhole",
+            "loopback",
+        )
+        return any(keyword in name for keyword in keywords)
+
+    def _find_default_virtual_output(self, devices):
+        for i, d in enumerate(devices):
+            name = d["name"].lower()
+            if "wdm-ks" in name:
+                continue
+            if d["max_output_channels"] <= 0:
+                continue
+            if self._is_virtual_output_device(name):
+                return i
+        return None
+
+    def restart(self, input_id=None, monitor_output_id=None, virtual_output_id=None):
 
         self.stop()
 
@@ -85,28 +111,14 @@ class StreamManager:
             self.input_stream.start()
 
         except Exception as e:
-            print("Blad strumienia wejscia:", e)
+            print("Błąd strumienia wejścia:", e)
             self.input_stream = None
 
-        vb_device_id = None
-
-        for i, d in enumerate(devices):
-
-            name = d["name"].lower()
-
-            if "wdm-ks" in name:
-                continue
-
-            if "cable input" in name and d["max_output_channels"] > 0:
-                vb_device_id = i
-                break
-
-        if vb_device_id is None:
-            for i, d in enumerate(devices):
-                name = d["name"].lower()
-                if "vb-audio" in name and d["max_output_channels"] > 0:
-                    vb_device_id = i
-                    break
+        vb_device_id = virtual_output_id
+        if vb_device_id == -1:
+            vb_device_id = None
+        elif vb_device_id is None:
+            vb_device_id = self._find_default_virtual_output(devices)
 
         self.vb_stream = None
 
@@ -135,14 +147,11 @@ class StreamManager:
 
                 self.vb_stream.start()
 
-                print("VB Cable OK:", vb_info["name"], "kanaly:", vb_channels)
+                print("Wyjście aplikacji OK:", vb_info["name"], "kanały:", vb_channels)
 
             except Exception as e:
-                print("Blad strumienia VB:", e)
+                print("Błąd strumienia wyjścia aplikacji:", e)
                 self.vb_stream = None
-
-        else:
-            print("VB Cable nie znaleziony")
 
         self.monitor_stream = None
 
@@ -163,7 +172,7 @@ class StreamManager:
                     self.monitor_stream.start()
 
             except Exception as e:
-                print("Blad strumienia monitoru:", e)
+                print("Błąd strumienia monitora:", e)
                 self.monitor_stream = None
 
     def update_monitor_state(self):

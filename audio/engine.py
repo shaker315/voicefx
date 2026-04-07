@@ -12,6 +12,8 @@ from .effects.echo import EchoEffect
 from .effects.noise_gate import NoiseGateEffect
 from .effects.compressor import CompressorEffect
 from .effects.limiter import SoftLimiterEffect
+from .effects.megafon import MegafonEffect
+from .effects.old_radio import OldRadioEffect
 
 
 class AudioEngine:
@@ -28,6 +30,8 @@ class AudioEngine:
         self.sub_bass = SubBassEffect(samplerate=samplerate)
         self.echo = EchoEffect(samplerate=samplerate)
         self.bass = BassBoostEffect(samplerate=samplerate)
+        self.megafon = MegafonEffect(samplerate=samplerate)
+        self.stare_radio = OldRadioEffect(samplerate=samplerate)
         self.noise_gate = NoiseGateEffect(samplerate=samplerate)
         self.compressor = CompressorEffect()
         self.limiter = SoftLimiterEffect()
@@ -36,19 +40,25 @@ class AudioEngine:
             self.distortion,
             self.saturation,
             self.compressor,
-            self.bass
+            self.bass,
+            self.megafon,
+            self.stare_radio,
         ]
 
     def process(self, indata):
 
         audio = indata[:, 0]
         processed = audio.copy()
+        meter_audio = audio.copy()
 
         if self.state.true_mute_active:
+            self.state.smoothed_rms = self.state.smoothed_rms * 0.9
+            self.state.peak_level = self.state.peak_level * 0.92
             return np.zeros_like(audio).astype(np.float32).reshape(-1, 1)
 
         if not self.state.mic_enabled:
             processed = np.zeros_like(processed)
+            meter_audio = np.zeros_like(meter_audio)
 
         if self.state.noise_gate_on:
             processed = self.noise_gate.process(processed, self.state)
@@ -73,6 +83,10 @@ class AudioEngine:
                 processed = self.sub_bass.process(processed, self.state)
             if self.state.echo_on:
                 processed = self.echo.process(processed, self.state)
+            if self.state.megafon_on:
+                processed = self.megafon.process(processed, self.state)
+            if self.state.stare_radio_on:
+                processed = self.stare_radio.process(processed, self.state)
 
         volume = self.state.volume
 
@@ -85,10 +99,10 @@ class AudioEngine:
         processed = self.compressor.process(processed, self.state)
         processed = self.limiter.process(processed, self.state)
 
-        current_rms = np.sqrt(np.mean(processed ** 2))
+        current_rms = np.sqrt(np.mean(meter_audio ** 2))
         self.state.smoothed_rms = self.state.smoothed_rms * 0.9 + current_rms * 0.1
 
-        peak = np.max(np.abs(processed))
+        peak = np.max(np.abs(meter_audio))
         self.state.peak_level = max(peak, self.state.peak_level * 0.92)
 
         processed = np.clip(processed, -1.0, 1.0)

@@ -1,26 +1,16 @@
 import tkinter as tk
 
 
-class LoadingScreen:
-    def __init__(
-        self,
-        root,
-        theme,
-        default_title="Wczytywanie...",
-        default_status="Przygotowanie...",
-        default_show_cancel=False,
-        show_progress_bar=True,
-        show_progress_percent=True,
-        show_download_details=False,
-    ):
+class UpdateLoadingScreen:
+    def __init__(self, root, theme):
         self.root = root
         self.theme = theme
-        self.default_title = default_title
-        self.default_status = default_status
-        self.default_show_cancel = default_show_cancel
-        self.show_progress_bar = show_progress_bar
-        self.show_progress_percent = show_progress_percent
-        self.show_download_details = show_download_details
+        self.default_title = "Pobieranie aktualizacji"
+        self.default_status = "Przygotowanie..."
+        self.default_show_cancel = True
+        self.show_progress_bar = True
+        self.show_progress_percent = True
+        self.show_download_details = True
 
         self._loading = None
         self._loading_title = None
@@ -74,54 +64,51 @@ class LoadingScreen:
         )
         self._loading_status.place(relx=0.5, rely=0.49, anchor="center")
 
-        if self.show_progress_bar:
-            bar_width = 320
-            bar_height = 18
-            self._loading_bar = tk.Canvas(
-                self._loading,
-                width=bar_width,
-                height=bar_height,
-                bg=self.theme["loading_bg"],
-                highlightthickness=0,
-            )
-            self._loading_bar.place(relx=0.5, rely=0.58, anchor="center")
+        bar_width = 320
+        bar_height = 18
+        self._loading_bar = tk.Canvas(
+            self._loading,
+            width=bar_width,
+            height=bar_height,
+            bg=self.theme["loading_bg"],
+            highlightthickness=0,
+        )
+        self._loading_bar.place(relx=0.5, rely=0.58, anchor="center")
 
-            self._loading_bar_bg = self._loading_bar.create_rectangle(
-                0,
-                0,
-                bar_width,
-                bar_height,
-                fill=self.theme["loading_bar_bg"],
-                outline="",
-            )
-            self._loading_bar_fill = self._loading_bar.create_rectangle(
-                0,
-                0,
-                0,
-                bar_height,
-                fill=self.theme["loading_bar_fill"],
-                outline="",
-            )
+        self._loading_bar_bg = self._loading_bar.create_rectangle(
+            0,
+            0,
+            bar_width,
+            bar_height,
+            fill=self.theme["loading_bar_bg"],
+            outline="",
+        )
+        self._loading_bar_fill = self._loading_bar.create_rectangle(
+            0,
+            0,
+            0,
+            bar_height,
+            fill=self.theme["loading_bar_fill"],
+            outline="",
+        )
 
-        if self.show_progress_percent:
-            self._loading_percent = tk.Label(
-                self._loading,
-                text="0%",
-                fg=self.theme["loading_text"],
-                bg=self.theme["loading_bg"],
-                font=("Segoe UI", 11, "bold"),
-            )
-            self._loading_percent.place(relx=0.5, rely=0.66, anchor="center")
+        self._loading_percent = tk.Label(
+            self._loading,
+            text="0%",
+            fg=self.theme["loading_text"],
+            bg=self.theme["loading_bg"],
+            font=("Segoe UI", 11, "bold"),
+        )
+        self._loading_percent.place(relx=0.5, rely=0.66, anchor="center")
 
-        if self.show_download_details:
-            self._loading_details = tk.Label(
-                self._loading,
-                text="0 B / 0 B  |  0 B/s",
-                fg=self.theme["loading_muted"],
-                bg=self.theme["loading_bg"],
-                font=("Segoe UI", 9),
-            )
-            self._loading_details.place(relx=0.5, rely=0.71, anchor="center")
+        self._loading_details = tk.Label(
+            self._loading,
+            text="0 B / 0 B  |  0 B/s",
+            fg=self.theme["loading_muted"],
+            bg=self.theme["loading_bg"],
+            font=("Segoe UI", 9),
+        )
+        self._loading_details.place(relx=0.5, rely=0.71, anchor="center")
 
         self._loading_cancel_btn = tk.Button(
             self._loading,
@@ -224,7 +211,6 @@ class LoadingScreen:
 
         self._loading_current = new_value
         self._apply_loading_progress(new_value)
-
         self._loading_anim_after = self.root.after(30, self._loading_anim_step)
 
     def _loading_indeterminate_step(self):
@@ -328,12 +314,13 @@ class LoadingScreen:
                 fg=self.theme["loading_muted"],
                 bg=self.theme["loading_bg"],
             )
-        self._loading_cancel_btn.config(
-            bg=self.theme["button_bg"],
-            fg=self.theme["button_text"],
-            activebackground=self.theme["button_bg_hover"],
-            activeforeground=self.theme["button_text"],
-        )
+        if self._loading_cancel_btn:
+            self._loading_cancel_btn.config(
+                bg=self.theme["button_bg"],
+                fg=self.theme["button_text"],
+                activebackground=self.theme["button_bg_hover"],
+                activeforeground=self.theme["button_text"],
+            )
 
     def _format_bytes(self, value):
         value = max(0, float(value))

@@ -1,17 +1,19 @@
-import sounddevice as sd
 import tkinter as tk
 from tkinter import messagebox
 import threading
 import os
 import sys
 import subprocess
-from core.updater import check_for_update, start_update
+import ctypes
 from core.settings import load_settings, save_settings
 from core.version import APP_VERSION
 from core.state import AppState
-from core.hotkeys import HotkeyManager
-from audio.stream_manager import StreamManager
-from gui.main_window import MainWindow
+from gui.windows.main import MainWindow
+
+try:
+    ctypes.windll.user32.DisableProcessWindowsGhosting()
+except Exception:
+    pass
 
 
 class VoiceFXApp:
@@ -27,48 +29,41 @@ class VoiceFXApp:
         return os.path.abspath(candidates[0])
 
     def __init__(self):
-        self._show_splash()
+        self.gui = None
+        self.stream_manager = None
+        self.hotkeys = None
+        self._update_thread = None
+
         self.settings = load_settings()
         if self.settings.get("app_version") != APP_VERSION:
             self.settings["app_version"] = APP_VERSION
             save_settings(self.settings)
-        self._ensure_desktop_shortcut()
         self.state = AppState(self.settings)
-        self.gui = None
-        if not self._detect_vb_cable():
-            self._show_vb_missing_dialog()
-            raise SystemExit(1)
-        self.stream_manager = StreamManager(self)
-        self.hotkeys = HotkeyManager(self)
         self.gui = MainWindow(self)
-        self._update_thread = None
 
     def run(self):
-        self.stream_manager.start()
-        self.hotkeys.register()
-        self.check_updates_async()
-        self.gui.run()
+        def heavy_initialization():
+            threading.Thread(target=self._ensure_desktop_shortcut, daemon=True).start()
 
-    def _detect_vb_cable(self):
-        try:
-            devices = sd.query_devices()
-        except Exception:
-            return False
+            if not self.stream_manager:
+                from audio.stream_manager import StreamManager
+                self.stream_manager = StreamManager(self)
+            if self.stream_manager:
+                self.stream_manager.start()
+            if not self.hotkeys:
+                from core.hotkeys import HotkeyManager
+                self.hotkeys = HotkeyManager(self)
+            if self.hotkeys:
+                self.hotkeys.register()
+            self.check_updates_async()
 
-        for d in devices:
-            name = str(d.get("name", "")).lower()
-            if "cable input" in name or "vb-audio" in name:
-                return True
-        return False
+        def start_runtime():
+            try:
+                self.gui.root.after(500, heavy_initialization)
+            except Exception:
+                heavy_initialization()
 
-    def _show_vb_missing_dialog(self):
-        root = tk.Tk()
-        root.withdraw()
-        messagebox.showwarning(
-            "Brak VB-CABLE",
-            "Nie wykryto VB-CABLE (CABLE Input). Pobierz i zainstaluj sterownik, a potem uruchom aplikacje ponownie.",
-        )
-        root.destroy()
+        self.gui.run(on_ready=start_runtime)
 
     def _ensure_desktop_shortcut(self):
         try:
@@ -156,6 +151,7 @@ class VoiceFXApp:
         self._update_thread.start()
 
     def _check_updates_worker(self):
+        from core.updater import check_for_update
         info = check_for_update(APP_VERSION, "https://raw.githubusercontent.com/shaker315/voicefx/main/version.json")
         if not info:
             return
@@ -163,7 +159,7 @@ class VoiceFXApp:
         def prompt():
             res = messagebox.askyesno(
                 "Aktualizacja",
-                f"Dostepna nowa wersja {info['version']}. Zainstalowac teraz?",
+                f"Dostępna nowa wersja {info['version']}. Zainstalować teraz?",
             )
             if not res:
                 return
@@ -213,6 +209,7 @@ class VoiceFXApp:
                     pass
 
             def update_worker():
+                from core.updater import start_update
                 ok, err, launched_installer = start_update(
                     info["url"],
                     progress_cb=progress_cb,
@@ -232,7 +229,7 @@ class VoiceFXApp:
                             return
                         messagebox.showerror(
                             "Aktualizacja",
-                            f"Nie udalo sie pobrac aktualizacji.\n{err}",
+                            f"Nie udało się pobrać aktualizacji.\n{err}",
                         )
                         return
                     self.gui.root.destroy()

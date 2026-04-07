@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox
 
 import customtkinter as ctk
 import sounddevice as sd
@@ -25,14 +25,15 @@ class SettingsWindow(tk.Toplevel):
         self.fg_primary = self.theme["fg_primary"]
         self.fg_muted = self.theme["fg_muted"]
         self.accent = self.theme["accent"]
+        self.card_border = self.theme["card_border"]
+        self.button_bg = self.theme["button_bg"]
+        self.button_bg_hover = self.theme["button_bg_hover"]
 
         self.title("Ustawienia")
-        self.geometry("440x560")
-        self.minsize(400, 480)
+        self.geometry("470x640")
+        self.minsize(430, 540)
         self.configure(bg=self.bg_root)
         self.resizable(False, False)
-
-        self.grab_set()
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
         self.app.hotkeys.clear()
@@ -42,11 +43,44 @@ class SettingsWindow(tk.Toplevel):
         self.update_idletasks()
         self.deiconify()
         self.lift()
+        self.grab_set()
 
+    def _is_virtual_output_device(self, device_name):
+        name = str(device_name).lower()
+        keywords = (
+            "cable input",
+            "vb-audio",
+            "voicemeeter",
+            "voice meeter",
+            "virtual",
+            "obs",
+            "blackhole",
+            "loopback",
+        )
+        return any(keyword in name for keyword in keywords)
 
     def create_layout(self):
         self.container = tk.Frame(self, bg=self.bg_root)
         self.container.pack(fill="both", expand=True)
+
+        self.header = tk.Frame(self.container, bg=self.bg_root, height=96)
+        self.header.pack(fill="x", padx=18, pady=(16, 10))
+        self.header.pack_propagate(False)
+
+        self.header_card = tk.Frame(
+            self.header,
+            bg=self.bg_card,
+            highlightthickness=1,
+            highlightbackground=self.card_border,
+            bd=0,
+        )
+        self.header_card.pack(fill="both", expand=True)
+
+        self.header_accent = tk.Frame(self.header_card, bg=self.accent, height=3)
+        self.header_accent.pack(fill="x", side="top")
+
+        self.header_body = tk.Frame(self.header_card, bg=self.bg_card)
+        self.header_body.pack(fill="both", expand=True, padx=16, pady=14)
 
         self.canvas = tk.Canvas(
             self.container,
@@ -54,7 +88,7 @@ class SettingsWindow(tk.Toplevel):
             highlightthickness=0,
             bd=0,
         )
-        self.canvas.pack(side="left", fill="both", expand=True)
+        self.canvas.pack(side="left", fill="both", expand=True, padx=(18, 0), pady=(0, 0))
 
         self.main_frame = tk.Frame(self.canvas, bg=self.bg_canvas)
         self.window_id = self.canvas.create_window((0, 0), window=self.main_frame, anchor="nw")
@@ -102,49 +136,65 @@ class SettingsWindow(tk.Toplevel):
         self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
         return "break"
 
-
-    def _configure_styles(self):
-        style = ttk.Style()
-        style.theme_use("clam")
-
-        self.option_add("*TCombobox*Listbox.background", self.bg_input)
-        self.option_add("*TCombobox*Listbox.foreground", self.fg_primary)
-        self.option_add("*TCombobox*Listbox.selectBackground", self.theme["combo_select_bg"])
-        self.option_add("*TCombobox*Listbox.selectForeground", self.theme["combo_select_fg"])
-        self.option_add("*TCombobox*Listbox.font", ("Segoe UI", 10))
-
-        style.configure(
-            "Modern.TCombobox",
-            fieldbackground=self.bg_input,
-            background=self.bg_input,
-            foreground=self.fg_primary,
-            bordercolor=self.bg_input,
-            lightcolor=self.bg_input,
-            darkcolor=self.bg_input,
-            arrowcolor=self.fg_primary,
-            insertcolor=self.fg_primary,
-            padding=6,
+    def _create_combo(self, parent, variable, values):
+        combo = ctk.CTkComboBox(
+            parent,
+            variable=variable,
+            values=values,
+            state="readonly",
+            font=("Segoe UI", 10),
+            dropdown_font=("Segoe UI", 10),
+            fg_color=self.bg_input,
+            border_color=self.theme["checkbox_border"],
+            button_color=self.bg_input,
+            button_hover_color=self.theme["button_bg_hover"],
+            text_color=self.fg_primary,
+            dropdown_fg_color=self.bg_input,
+            dropdown_text_color=self.fg_primary,
+            dropdown_hover_color=self.theme["combo_select_bg"],
+            corner_radius=8,
+            height=34,
+            width=100,
         )
-
-        style.map(
-            "Modern.TCombobox",
-            fieldbackground=[("readonly", self.bg_input)],
-            foreground=[("readonly", self.fg_primary)],
-        )
+        combo.configure(cursor="hand2")
+        try:
+            combo._entry.configure(cursor="hand2")
+        except Exception:
+            pass
+        return combo
 
     def _card(self, title):
-        card = tk.Frame(self.main_frame, bg=self.bg_card)
-        card.pack(fill="x", padx=16, pady=(0, 12))
+        shell = tk.Frame(self.main_frame, bg=self.bg_canvas)
+        shell.pack(fill="x", padx=2, pady=(0, 14))
+
+        card = tk.Frame(
+            shell,
+            bg=self.bg_card,
+            highlightthickness=1,
+            highlightbackground=self.card_border,
+            bd=0,
+        )
+        card.pack(fill="x")
+
+        top = tk.Frame(card, bg=self.bg_card, height=38)
+        top.pack(fill="x")
+        top.pack_propagate(False)
+
+        accent_bar = tk.Frame(top, bg=self.accent, width=4)
+        accent_bar.pack(side="left", fill="y")
 
         tk.Label(
-            card,
-            text=title,
+            top,
+            text=title.upper(),
             bg=self.bg_card,
             fg=self.fg_primary,
-            font=("Segoe UI", 11, "bold"),
-        ).pack(anchor="w", padx=14, pady=(12, 8))
+            font=("Segoe UI", 10, "bold"),
+        ).pack(anchor="w", padx=(14, 14), pady=(9, 0))
 
-        return card
+        body = tk.Frame(card, bg=self.bg_card)
+        body.pack(fill="x", padx=14, pady=(4, 14))
+
+        return body
 
     def _row_label(self, parent, text):
         tk.Label(
@@ -152,29 +202,27 @@ class SettingsWindow(tk.Toplevel):
             text=text,
             bg=self.bg_card,
             fg=self.fg_muted,
-            font=("Segoe UI", 9),
-        ).pack(anchor="w", padx=14, pady=(4, 4))
+            font=("Segoe UI", 9, "bold"),
+        ).pack(anchor="w", pady=(6, 6))
 
     def create_widgets(self):
-        self._configure_styles()
-
         tk.Label(
-            self.main_frame,
+            self.header_body,
             text="Ustawienia",
-            bg=self.bg_canvas,
+            bg=self.bg_card,
             fg=self.fg_primary,
-            font=("Segoe UI", 18, "bold"),
-        ).pack(anchor="w", padx=18, pady=(16, 4))
+            font=("Segoe UI", 20, "bold"),
+        ).pack(anchor="w")
 
         tk.Label(
-            self.main_frame,
-            text="Urzadzenia audio, skroty i widok",
-            bg=self.bg_canvas,
+            self.header_body,
+            text="Audio, skróty i widok aplikacji",
+            bg=self.bg_card,
             fg=self.fg_muted,
             font=("Segoe UI", 10),
-        ).pack(anchor="w", padx=18, pady=(0, 12))
+        ).pack(anchor="w", pady=(2, 0))
 
-        devices_card = self._card("Urzadzenia")
+        devices_card = self._card("Urządzenia")
 
         self._row_label(devices_card, "Mikrofon")
         self.input_var = tk.StringVar()
@@ -183,64 +231,65 @@ class SettingsWindow(tk.Toplevel):
             for i, d in enumerate(sd.query_devices())
             if d["max_input_channels"] > 0 and "WDM-KS" not in d["name"]
         ]
-        input_names = [name for _, name in self.input_devices]
+        input_names = ["Domyślne systemowe"] + [name for _, name in self.input_devices]
 
-        self.input_combo = ttk.Combobox(
-            devices_card,
-            values=input_names,
-            textvariable=self.input_var,
-            state="readonly",
-            style="Modern.TCombobox",
-            cursor="hand2",
-        )
-        self.input_combo.pack(fill="x", padx=14, pady=(0, 8))
+        self.input_combo = self._create_combo(devices_card, self.input_var, input_names)
+        self.input_combo.pack(fill="x", pady=(0, 8))
         self._bind_combobox_wheel_to_scroll(self.input_combo)
 
-        self._row_label(devices_card, "Wyjscie (odsluch)")
+        self._row_label(devices_card, "Wyjście (odsłuch)")
         self.output_var = tk.StringVar()
         self.output_devices = [
             (i, d["name"])
             for i, d in enumerate(sd.query_devices())
             if d["max_output_channels"] > 0 and "WDM-KS" not in d["name"]
         ]
-        output_names = [name for _, name in self.output_devices]
+        output_names = ["Domyślne systemowe"] + [name for _, name in self.output_devices]
 
-        self.output_combo = ttk.Combobox(
-            devices_card,
-            values=output_names,
-            textvariable=self.output_var,
-            state="readonly",
-            style="Modern.TCombobox",
-            cursor="hand2",
-        )
-        self.output_combo.pack(fill="x", padx=14, pady=(0, 14))
+        self.output_combo = self._create_combo(devices_card, self.output_var, output_names)
+        self.output_combo.pack(fill="x", pady=(0, 14))
         self._bind_combobox_wheel_to_scroll(self.output_combo)
+
+        self._row_label(devices_card, "Wyjście aplikacji (np. OBS, VB-Cable)")
+        self.virtual_output_var = tk.StringVar()
+        self.virtual_output_devices = [
+            (i, d["name"])
+            for i, d in enumerate(sd.query_devices())
+            if d["max_output_channels"] > 0
+            and "WDM-KS" not in d["name"]
+            and self._is_virtual_output_device(d["name"])
+        ]
+        virtual_output_names = ["Auto"] + [name for _, name in self.virtual_output_devices]
+
+        self.virtual_output_combo = self._create_combo(devices_card, self.virtual_output_var, virtual_output_names)
+        self.virtual_output_combo.pack(fill="x", pady=(0, 14))
+        self._bind_combobox_wheel_to_scroll(self.virtual_output_combo)
 
         self.set_current_devices()
 
-        hotkeys_card = self._card("Skroty")
+        hotkeys_card = self._card("Skróty")
 
-        self._row_label(hotkeys_card, "Efekty wl./wyl.")
+        self._row_label(hotkeys_card, "Efekty wł./wył.")
         self.mic_hotkey_var = tk.StringVar(value=self.settings["hotkey_mic_mute"])
         self.mic_entry = self.create_hotkey_entry(hotkeys_card, self.mic_hotkey_var)
-        self.mic_entry.pack(fill="x", padx=14, pady=(0, 8))
+        self.mic_entry.pack(fill="x", pady=(0, 8))
 
-        self._row_label(hotkeys_card, "Odsluch wl./wyl.")
+        self._row_label(hotkeys_card, "Odsłuch wł./wył.")
         self.monitor_hotkey_var = tk.StringVar(value=self.settings["hotkey_monitor_mute"])
         self.monitor_entry = self.create_hotkey_entry(hotkeys_card, self.monitor_hotkey_var)
-        self.monitor_entry.pack(fill="x", padx=14, pady=(0, 8))
+        self.monitor_entry.pack(fill="x", pady=(0, 8))
 
-        self._row_label(hotkeys_card, "Calkowite wyciszenie")
+        self._row_label(hotkeys_card, "Całkowite wyciszenie")
         self.true_mic_mute_var = tk.StringVar(value=self.settings.get("hotkey_true_mic_mute", "F10"))
         self.true_mic_entry = self.create_hotkey_entry(hotkeys_card, self.true_mic_mute_var)
-        self.true_mic_entry.pack(fill="x", padx=14, pady=(0, 14))
+        self.true_mic_entry.pack(fill="x", pady=(0, 14))
 
         view_card = self._card("Widok")
         self.meter_var = ctk.BooleanVar(value=self.app_state.show_meter)
 
         self.meter_checkbox = ctk.CTkCheckBox(
             view_card,
-            text="Pokaz meter",
+            text="Pokaż meter",
             variable=self.meter_var,
             fg_color=self.accent,
             hover_color=self.theme["accent_hover"],
@@ -250,62 +299,56 @@ class SettingsWindow(tk.Toplevel):
             border_width=1,
             border_color=self.theme["checkbox_border"],
         )
-        self.meter_checkbox.pack(anchor="w", padx=14, pady=(4, 14))
+        self.meter_checkbox.pack(anchor="w", pady=(4, 14))
 
-        self._row_label(view_card, "Wyglad")
+        self._row_label(view_card, "Wygląd")
         self.theme_var = tk.StringVar(
             value="Jasny" if self.settings.get("theme") == "light" else "Ciemny"
         )
-        self.theme_combo = ttk.Combobox(
-            view_card,
-            values=["Ciemny", "Jasny"],
-            textvariable=self.theme_var,
-            state="readonly",
-            style="Modern.TCombobox",
-            cursor="hand2",
-        )
-        self.theme_combo.pack(fill="x", padx=14, pady=(0, 14))
+        self.theme_combo = self._create_combo(view_card, self.theme_var, ["Ciemny", "Jasny"])
+        self.theme_combo.pack(fill="x", pady=(0, 14))
         self._bind_combobox_wheel_to_scroll(self.theme_combo)
 
         actions = tk.Frame(self.main_frame, bg=self.bg_canvas)
-        actions.pack(fill="x", padx=16, pady=(0, 16))
+        actions.pack(fill="x", padx=2, pady=(0, 18))
         actions.grid_columnconfigure(0, weight=1)
         actions.grid_columnconfigure(1, weight=1)
 
-        tk.Button(
+        self.cancel_btn = ctk.CTkButton(
             actions,
             text="Anuluj",
             command=self.on_close,
-            bg=self.theme["button_bg"],
-            fg=self.theme["button_text"],
-            activebackground=self.theme["button_bg_hover"],
-            activeforeground=self.theme["button_text"],
-            relief="flat",
+            fg_color=self.button_bg,
+            hover_color=self.button_bg_hover,
+            text_color=self.theme["button_text"],
+            border_width=1,
+            border_color=self.card_border,
+            corner_radius=10,
+            height=40,
+            font=("Segoe UI", 11, "bold"),
             cursor="hand2",
-            font=("Segoe UI", 10, "bold"),
-            padx=8,
-            pady=8,
-        ).grid(row=0, column=0, sticky="ew", padx=(0, 6))
+        )
+        self.cancel_btn.grid(row=0, column=0, sticky="ew", padx=(0, 7))
 
-        tk.Button(
+        self.save_btn = ctk.CTkButton(
             actions,
             text="Zapisz",
             command=self.save_and_close,
-            bg=self.accent,
-            fg=self.theme["button_text_dark"],
-            activebackground=self.theme["accent_hover"],
-            activeforeground=self.theme["button_text_dark"],
-            relief="flat",
+            fg_color=self.accent,
+            hover_color=self.theme["accent_hover"],
+            text_color=self.theme["button_text_dark"],
+            corner_radius=10,
+            height=40,
+            font=("Segoe UI", 11, "bold"),
             cursor="hand2",
-            font=("Segoe UI", 10, "bold"),
-            padx=8,
-            pady=8,
-        ).grid(row=0, column=1, sticky="ew", padx=(6, 0))
+        )
+        self.save_btn.grid(row=0, column=1, sticky="ew", padx=(7, 0))
 
 
     def set_current_devices(self):
         input_id = self.settings.get("default_input_device")
         output_id = self.settings.get("default_output_device")
+        virtual_output_id = self.settings.get("default_virtual_output_device")
 
         if input_id is not None:
             for idx, name in self.input_devices:
@@ -313,7 +356,7 @@ class SettingsWindow(tk.Toplevel):
                     self.input_var.set(name)
                     break
         else:
-            self.input_var.set("Domyslne systemowe")
+            self.input_var.set("Domyślne systemowe")
 
         if output_id is not None:
             for idx, name in self.output_devices:
@@ -321,7 +364,20 @@ class SettingsWindow(tk.Toplevel):
                     self.output_var.set(name)
                     break
         else:
-            self.output_var.set("Domyslne systemowe")
+            self.output_var.set("Domyślne systemowe")
+
+        if virtual_output_id is not None:
+            if virtual_output_id == -1:
+                self.virtual_output_var.set("Brak")
+                return
+            for idx, name in self.virtual_output_devices:
+                if idx == virtual_output_id:
+                    self.virtual_output_var.set(name)
+                    break
+            else:
+                self.virtual_output_var.set("Auto")
+        else:
+            self.virtual_output_var.set("Auto")
 
     def _bind_combobox_wheel_to_scroll(self, combo):
         def on_wheel(event):
@@ -329,6 +385,10 @@ class SettingsWindow(tk.Toplevel):
             return "break"
 
         combo.bind("<MouseWheel>", on_wheel)
+        try:
+            combo._entry.bind("<MouseWheel>", on_wheel)
+        except Exception:
+            pass
 
 
     def create_hotkey_entry(self, parent, variable):
@@ -351,7 +411,7 @@ class SettingsWindow(tk.Toplevel):
         def start_listen(event=None):
             if not listening["active"]:
                 listening["active"] = True
-                variable.set("Nacisnij klawisz...")
+                variable.set("Naciśnij klawisz...")
                 entry.config(fg="#ff6b6b", state="normal")
                 entry.delete(0, tk.END)
 
@@ -395,7 +455,7 @@ class SettingsWindow(tk.Toplevel):
 
     def save_and_close(self):
         if not self.mic_hotkey_var.get() or not self.monitor_hotkey_var.get():
-            messagebox.showerror("Blad", "Skroty nie moga byc puste")
+            messagebox.showerror("Błąd", "Skróty nie mogą być puste")
             return
 
         mic = self.mic_hotkey_var.get().strip().lower()
@@ -404,8 +464,8 @@ class SettingsWindow(tk.Toplevel):
 
         if len({mic, monitor, true_mute}) < 3:
             messagebox.showerror(
-                "Blad",
-                "Kazda akcja musi miec inny skrot.",
+                "Błąd",
+                "Każda akcja musi mieć inny skrót.",
             )
             return
 
@@ -421,11 +481,20 @@ class SettingsWindow(tk.Toplevel):
             if name == selected_output:
                 output_id = idx
 
+        virtual_output_id = None
+        selected_virtual_output = self.virtual_output_var.get()
+        if selected_virtual_output != "Auto":
+            for idx, name in self.virtual_output_devices:
+                if name == selected_virtual_output:
+                    virtual_output_id = idx
+
         self.app_state.default_input_device = input_id
         self.app_state.default_output_device = output_id
+        self.app_state.default_virtual_output_device = virtual_output_id
 
         self.settings["default_input_device"] = input_id
         self.settings["default_output_device"] = output_id
+        self.settings["default_virtual_output_device"] = virtual_output_id
         self.settings["hotkey_mic_mute"] = self.mic_hotkey_var.get()
         self.settings["hotkey_monitor_mute"] = self.monitor_hotkey_var.get()
         self.settings["hotkey_true_mic_mute"] = self.true_mic_mute_var.get()
@@ -440,7 +509,7 @@ class SettingsWindow(tk.Toplevel):
 
         save_settings(self.settings)
         self.app.hotkeys.register()
-        self.app.stream_manager.restart(input_id, output_id)
+        self.app.stream_manager.restart(input_id, output_id, virtual_output_id)
         gui = getattr(self.app, "gui", None)
         if gui and hasattr(gui, "root") and gui.root.winfo_exists():
             gui.root.after(

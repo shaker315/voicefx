@@ -32,7 +32,7 @@ def check_for_update(current_version, version_url):
             data = r.read().decode("utf-8")
         info = json.loads(data)
         remote_version = info.get("version", "")
-        url = info.get("url", "")
+        url = info.get("url", "") or info.get("download_url", "")
         if not remote_version or not url:
             return None
         if _is_newer(remote_version, current_version):
